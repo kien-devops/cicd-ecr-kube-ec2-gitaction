@@ -1,0 +1,59 @@
+name: Build and Push on EC2
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  REPO_DIR: /home/ubuntu/cicd-jenkin-ecr-ecs
+  REPO_URL: git remote add origin https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
+  REGISTRY: 545587707922.dkr.ecr.ap-southeast-1.amazonaws.com
+  AWS_REGION: ap-southeast-1
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH key
+        shell: bash
+        run: |
+          install -m 600 /dev/null ~/.ssh/ec2_key
+          printf '%s' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
+
+      - name: Build and push images on EC2
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          GIT_AUTH=$(printf '%s' "${GIT_USERNAME}:${GIT_PASSWORD}" | base64 | tr -d '\n')
+
+          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no "ubuntu@${EC2_HOST}" \
+            "GIT_AUTH='${GIT_AUTH}' REPO_DIR='${REPO_DIR}' REPO_URL='${REPO_URL}' REGISTRY='${REGISTRY}' AWS_REGION='${AWS_REGION}' /bin/bash -s" <<'EOF'
+          set -euo pipefail
+
+          if [ ! -d "$REPO_DIR/.git" ]; then
+              rm -rf "$REPO_DIR"
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b master "$REPO_URL" "$REPO_DIR"
+          else
+              cd "$REPO_DIR"
+              git remote set-url origin "$REPO_URL"
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin master
+              git reset --hard origin/master
+          fi
+
+          cd "$REPO_DIR"
+          git remote set-url origin "$REPO_URL"
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+          docker build -t ecr-fe -f hospital_FE/Dockerfile hospital_FE
+          docker build -t ecr-be -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
+          docker tag ecr-fe:latest "$REGISTRY/ecr-fe:latest"
+          docker tag ecr-be:latest "$REGISTRY/ecr-be:latest"
+          docker push "$REGISTRY/ecr-fe:latest"
+          docker push "$REGISTRY/ecr-be:latest"
+          EOF

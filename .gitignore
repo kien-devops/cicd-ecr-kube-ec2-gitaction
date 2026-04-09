@@ -1,0 +1,22 @@
+.DS_Store
+.history/
+.vs/
+.vscode/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS / temp
+Thumbs.db
+*.tmp
+*.swp
+
+# Docker / local overrides
+docker-compose.override.yml
