@@ -3,7 +3,7 @@ name: Build and Push on EC2
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   REPO_DIR: /home/ubuntu/cicd-jenkin-ecr-ecs
