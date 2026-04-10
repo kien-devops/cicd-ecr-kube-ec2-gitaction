@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  REPO_DIR: /data/cicd-jenkin-ecr-ecs
+  REPO_DIR: /home/ubuntu/cicd-ecr-kube-ec2-gitaction
   REPO_URL: https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
   REGISTRY: ${{ secrets.ECR_REGISTRY }}
   AWS_REGION: ap-southeast-1
@@ -36,10 +36,6 @@ jobs:
 
           ssh -i ~/.ssh/ec2_key \
             -o StrictHostKeyChecking=no \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=10 \
-            -o TCPKeepAlive=yes \
-            -o BatchMode=yes \
             "ubuntu@${EC2_HOST}" \
             "GIT_AUTH='${GIT_AUTH}' REPO_DIR='${REPO_DIR}' REPO_URL='${REPO_URL}' REGISTRY='${REGISTRY}' AWS_REGION='${AWS_REGION}' /bin/bash -s" <<'EOF'
           set -euo pipefail
@@ -47,13 +43,8 @@ jobs:
           command -v aws >/dev/null 2>&1 || { echo "aws CLI is not installed on EC2"; exit 1; }
           command -v docker >/dev/null 2>&1 || { echo "docker is not installed on EC2"; exit 1; }
 
-          sudo mkdir -p "$REPO_DIR"
-          sudo chown -R ubuntu:ubuntu "$REPO_DIR"
-
           if [ ! -d "$REPO_DIR/.git" ]; then
-              sudo rm -rf "$REPO_DIR"
-              sudo mkdir -p "$REPO_DIR"
-              sudo chown -R ubuntu:ubuntu "$REPO_DIR"
+              rm -rf "$REPO_DIR"
               git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b main "$REPO_URL" "$REPO_DIR"
           else
               cd "$REPO_DIR"
@@ -63,29 +54,11 @@ jobs:
           fi
 
           cd "$REPO_DIR"
-          git remote set-url origin "$REPO_URL"
-
-          echo "Disk usage before cleanup:"
-          df -h
-          sudo docker system prune -af || true
-          sudo docker builder prune -af || true
-          sudo rm -rf /root/.local/share/NuGet/http-cache /tmp/NuGetScratchroot || true
-          echo "Disk usage after cleanup:"
-          df -h
-
           aws ecr get-login-password --region "$AWS_REGION" | sudo docker login --username AWS --password-stdin "$REGISTRY"
-
           sudo docker build -t ecr-fe -f hospital_FE/Dockerfile hospital_FE
-          sudo docker tag ecr-fe:latest "$REGISTRY/ecr-fe:latest"
-          sudo docker push "$REGISTRY/ecr-fe:latest"
-
-          sudo docker image rm -f ecr-fe:latest "$REGISTRY/ecr-fe:latest" || true
-          sudo docker builder prune -af || true
-          sudo rm -rf /root/.local/share/NuGet/http-cache /tmp/NuGetScratchroot || true
-          echo "Disk usage before backend build:"
-          df -h
-
           sudo docker build -t ecr-be -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
+          sudo docker tag ecr-fe:latest "$REGISTRY/ecr-fe:latest"
           sudo docker tag ecr-be:latest "$REGISTRY/ecr-be:latest"
+          sudo docker push "$REGISTRY/ecr-fe:latest"
           sudo docker push "$REGISTRY/ecr-be:latest"
           EOF
