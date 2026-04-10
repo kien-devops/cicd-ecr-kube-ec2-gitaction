@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  REPO_DIR: /home/ubuntu/cicd-jenkin-ecr-ecs
+  REPO_DIR: /data/cicd-jenkin-ecr-ecs
   REPO_URL: https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
   REGISTRY: ${{ secrets.ECR_REGISTRY }}
   AWS_REGION: ap-southeast-1
