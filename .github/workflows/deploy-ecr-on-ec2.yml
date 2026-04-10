@@ -35,9 +35,18 @@ jobs:
 
           GIT_AUTH=$(printf '%s' "${GIT_USERNAME}:${GIT_PASSWORD}" | base64 | tr -d '\n')
 
-          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no "ubuntu@${EC2_HOST}" \
+          ssh -i ~/.ssh/ec2_key \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=10 \
+            -o TCPKeepAlive=yes \
+            -o BatchMode=yes \
+            "ubuntu@${EC2_HOST}" \
             "GIT_AUTH='${GIT_AUTH}' REPO_DIR='${REPO_DIR}' REPO_URL='${REPO_URL}' REGISTRY='${REGISTRY}' AWS_REGION='${AWS_REGION}' /bin/bash -s" <<'EOF'
           set -euo pipefail
+
+          command -v aws >/dev/null 2>&1 || { echo "aws CLI is not installed on EC2"; exit 1; }
+          command -v docker >/dev/null 2>&1 || { echo "docker is not installed on EC2"; exit 1; }
 
           if [ ! -d "$REPO_DIR/.git" ]; then
               rm -rf "$REPO_DIR"
@@ -51,7 +60,7 @@ jobs:
 
           cd "$REPO_DIR"
           git remote set-url origin "$REPO_URL"
-          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+          aws ecr get-login-password --region "$AWS_REGION" | sudo docker login --username AWS --password-stdin "$REGISTRY"
           sudo docker build -t ecr-fe -f hospital_FE/Dockerfile hospital_FE
           sudo docker build -t ecr-be -f hospital_BE/Hospital_API/Dockerfile hospital_BE/Hospital_API
           sudo docker tag ecr-fe:latest "$REGISTRY/ecr-fe:latest"
