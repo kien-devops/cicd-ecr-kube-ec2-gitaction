@@ -47,8 +47,13 @@ jobs:
           command -v aws >/dev/null 2>&1 || { echo "aws CLI is not installed on EC2"; exit 1; }
           command -v docker >/dev/null 2>&1 || { echo "docker is not installed on EC2"; exit 1; }
 
+          sudo mkdir -p "$REPO_DIR"
+          sudo chown -R ubuntu:ubuntu "$REPO_DIR"
+
           if [ ! -d "$REPO_DIR/.git" ]; then
-              rm -rf "$REPO_DIR"
+              sudo rm -rf "$REPO_DIR"
+              sudo mkdir -p "$REPO_DIR"
+              sudo chown -R ubuntu:ubuntu "$REPO_DIR"
               git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b main "$REPO_URL" "$REPO_DIR"
           else
               cd "$REPO_DIR"
