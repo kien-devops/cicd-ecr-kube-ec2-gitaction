@@ -59,11 +59,28 @@ jobs:
 
           cd "$REPO_DIR"
           git remote set-url origin "$REPO_URL"
+
+          echo "Disk usage before cleanup:"
+          df -h
+          sudo docker system prune -af || true
+          sudo docker builder prune -af || true
+          sudo rm -rf /root/.local/share/NuGet/http-cache /tmp/NuGetScratchroot || true
+          echo "Disk usage after cleanup:"
+          df -h
+
           aws ecr get-login-password --region "$AWS_REGION" | sudo docker login --username AWS --password-stdin "$REGISTRY"
+
           sudo docker build -t ecr-fe -f hospital_FE/Dockerfile hospital_FE
-          sudo docker build -t ecr-be -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
           sudo docker tag ecr-fe:latest "$REGISTRY/ecr-fe:latest"
-          sudo docker tag ecr-be:latest "$REGISTRY/ecr-be:latest"
           sudo docker push "$REGISTRY/ecr-fe:latest"
+
+          sudo docker image rm -f ecr-fe:latest "$REGISTRY/ecr-fe:latest" || true
+          sudo docker builder prune -af || true
+          sudo rm -rf /root/.local/share/NuGet/http-cache /tmp/NuGetScratchroot || true
+          echo "Disk usage before backend build:"
+          df -h
+
+          sudo docker build -t ecr-be -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
+          sudo docker tag ecr-be:latest "$REGISTRY/ecr-be:latest"
           sudo docker push "$REGISTRY/ecr-be:latest"
           EOF
