@@ -8,7 +8,7 @@ on:
 
 env:
   REPO_DIR: /home/ubuntu/cicd-jenkin-ecr-ecs
-  REPO_URL: git remote add origin https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
+  REPO_URL: https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
   REGISTRY: 545587707922.dkr.ecr.ap-southeast-1.amazonaws.com
   AWS_REGION: ap-southeast-1
 
@@ -20,6 +20,7 @@ jobs:
       - name: Configure SSH key
         shell: bash
         run: |
+          mkdir -p ~/.ssh
           install -m 600 /dev/null ~/.ssh/ec2_key
           printf '%s' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
 
@@ -40,12 +41,12 @@ jobs:
 
           if [ ! -d "$REPO_DIR/.git" ]; then
               rm -rf "$REPO_DIR"
-              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b master "$REPO_URL" "$REPO_DIR"
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b main "$REPO_URL" "$REPO_DIR"
           else
               cd "$REPO_DIR"
               git remote set-url origin "$REPO_URL"
-              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin master
-              git reset --hard origin/master
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin main
+              git reset --hard origin/main
           fi
 
           cd "$REPO_DIR"
