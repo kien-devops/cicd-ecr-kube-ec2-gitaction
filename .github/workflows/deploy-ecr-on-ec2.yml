@@ -61,7 +61,7 @@ jobs:
           git remote set-url origin "$REPO_URL"
           aws ecr get-login-password --region "$AWS_REGION" | sudo docker login --username AWS --password-stdin "$REGISTRY"
           sudo docker build -t ecr-fe -f hospital_FE/Dockerfile hospital_FE
-          sudo docker build -t ecr-be -f hospital_BE/Hospital_API/Dockerfile hospital_BE/Hospital_API
+          sudo docker build -t ecr-be -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
           sudo docker tag ecr-fe:latest "$REGISTRY/ecr-fe:latest"
           sudo docker tag ecr-be:latest "$REGISTRY/ecr-be:latest"
           sudo docker push "$REGISTRY/ecr-fe:latest"
