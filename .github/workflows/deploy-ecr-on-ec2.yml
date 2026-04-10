@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
 
 env:
   REPO_DIR: /home/ubuntu/cicd-jenkin-ecr-ecs
