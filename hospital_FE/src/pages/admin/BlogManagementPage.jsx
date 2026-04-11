@@ -314,7 +314,7 @@ const BlogManagementPage = () => {
                             throw new Error('Không tìm thấy token xác thực');
                           }
 
-                          const response = await fetch(`${import.meta.env.VITE_API_URL}/Image/upload`, {
+                          const response = await fetch(`${MEDIA_BASE_URL}/api/Image/upload`, {
                             method: 'POST',
                             body: formData,
                             headers: {
