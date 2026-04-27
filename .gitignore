@@ -30,6 +30,9 @@ yarn-error.log*
 # Docker / local overrides
 docker-compose.override.yml
 
+# Local Alertmanager webhook config
+alertmanager/scale-webhook.env
+
 # .NET
 bin/
 obj/

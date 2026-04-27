@@ -1,0 +1,21 @@
+groups:
+  - name: node-exporter-alerts
+    rules:
+      - alert: NodeExporterDown
+        expr: up{job="node_exporter"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node exporter down: {{ $labels.instance }}"
+          description: "Target {{ $labels.instance }} has been down for more than 30 seconds."
+
+      - alert: HighAverageNodeCpuUsage
+        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{job="node_exporter", mode="idle"}[5m]))) > 50
+        for: 2m
+        labels:
+          severity: warning
+          action: scale-ec2
+        annotations:
+          summary: "Average node CPU usage is above 50%"
+          description: "Average CPU usage across node_exporter targets is {{ $value | printf \"%.2f\" }}% for more than 2 minutes."
