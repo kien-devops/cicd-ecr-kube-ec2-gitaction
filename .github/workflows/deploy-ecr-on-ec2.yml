@@ -3,7 +3,7 @@ name: Build and Push on EC2
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   REPO_DIR: /home/ubuntu/cicd-ecr-kube-ec2-gitaction

@@ -1,0 +1,80 @@
+---
+- name: Install basic HTML web server
+  hosts: web
+  gather_facts: no
+  become: yes
+
+  pre_tasks:
+    - name: Wait for SSH to become available
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+
+    - name: Gather facts
+      setup:
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Create custom index.html
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Terraform + Ansible Web</title>
+            <style>
+              body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: #111827;
+                color: white;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+              }
+              .card {
+                background: #1f2937;
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+              }
+              h1 {
+                color: #22c55e;
+                font-size: 48px;
+                margin-bottom: 10px;
+              }
+              p {
+                font-size: 22px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>Hello from node2!</h1>
+              <p>EC2 created by Terraform.</p>
+              <p>Web configured by Ansible.</p>
+            </div>
+          </body>
+          </html>
+
+    - name: Restart Nginx
+      systemd:
+        name: nginx
+        state: restarted
