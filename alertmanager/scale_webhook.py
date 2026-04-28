@@ -13,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent
 REPO_DIR = BASE_DIR.parent
 TERRAFORM_DIR = REPO_DIR / "terraform"
 ADD_NODE_SCRIPT = TERRAFORM_DIR / "add-node.sh"
+WORKFLOW_SCRIPT = REPO_DIR / "provision-ec2-and-run-ansible.sh"
 DEFAULT_ENV_FILE = BASE_DIR / "scale-webhook.env"
 
 
@@ -39,10 +40,14 @@ SSH_SERVER_IP = os.environ.get("SCALE_SERVER_IP", "")
 SSH_TARGET = os.environ.get("SCALE_SSH_TARGET", f"{SSH_USER}@{SSH_SERVER_IP}" if SSH_SERVER_IP else "")
 SSH_KEY = os.environ.get("SCALE_SSH_KEY", str(BASE_DIR / "kien.pem"))
 SSH_PORT = os.environ.get("SCALE_SSH_PORT", "22")
-REMOTE_TERRAFORM_DIR = os.environ.get("SCALE_TERRAFORM_DIR", "/home/ubuntu/terraform")
+REMOTE_WORKFLOW_DIR = os.environ.get("SCALE_WORKFLOW_DIR", "/home/ubuntu")
+REMOTE_WORKFLOW_SCRIPT = os.environ.get(
+    "SCALE_WORKFLOW_SCRIPT",
+    "provision-ec2-and-run-ansible.sh",
+)
 SSH_COMMAND = os.environ.get(
     "SCALE_SSH_COMMAND",
-    f"cd {shlex.quote(REMOTE_TERRAFORM_DIR)} && bash ./add-node.sh",
+    f"cd {shlex.quote(REMOTE_WORKFLOW_DIR)} && bash ./{shlex.quote(REMOTE_WORKFLOW_SCRIPT)}",
 )
 
 STATE_DIR = Path(os.environ.get("SCALE_WEBHOOK_STATE_DIR", str(BASE_DIR)))
@@ -139,12 +144,19 @@ def run_scale():
 
         return result.stdout
 
-    if not ADD_NODE_SCRIPT.exists():
-        raise FileNotFoundError(f"Missing scale script: {ADD_NODE_SCRIPT}")
+    if WORKFLOW_SCRIPT.exists():
+        command = ["bash", str(WORKFLOW_SCRIPT)]
+        cwd = str(REPO_DIR)
+    else:
+        if not ADD_NODE_SCRIPT.exists():
+            raise FileNotFoundError(f"Missing scale script: {ADD_NODE_SCRIPT}")
+
+        command = ["bash", str(ADD_NODE_SCRIPT)]
+        cwd = str(TERRAFORM_DIR)
 
     result = subprocess.run(
-        ["bash", str(ADD_NODE_SCRIPT)],
-        cwd=str(TERRAFORM_DIR),
+        command,
+        cwd=cwd,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
