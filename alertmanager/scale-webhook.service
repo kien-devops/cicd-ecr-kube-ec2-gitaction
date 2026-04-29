@@ -18,7 +18,7 @@ Environment=SCALE_WEBHOOK_COOLDOWN_SECONDS=1800
 # SCALE_SSH_USER=ubuntu
 # SCALE_SSH_KEY=/home/ubuntu/alertmanager/kien.pem
 # SCALE_WORKFLOW_DIR=/home/ubuntu
-# SCALE_WORKFLOW_SCRIPT=provision-ec2-and-run-ansible.sh
+# SCALE_WORKFLOW_SCRIPT=ansible-web/provision-ec2-and-run-ansible.sh
 
 [Install]
 WantedBy=multi-user.target

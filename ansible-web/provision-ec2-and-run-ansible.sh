@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${ANSIBLE_DIR}/.." && pwd)"
 TERRAFORM_DIR="${ROOT_DIR}/terraform"
-ANSIBLE_DIR="${ROOT_DIR}/ansible-web"
 
 TFVARS_FILE="${TERRAFORM_DIR}/terraform.tfvars"
 ADD_NODE_SCRIPT="${TERRAFORM_DIR}/add-node.sh"
 ENV_FILE="${ANSIBLE_DIR}/.env"
 INVENTORY_FILE="${ANSIBLE_DIR}/hosts.ini"
-PLAYBOOK_FILE="${ANSIBLE_DIR}/install_web.yml"
+PLAYBOOK_FILE="${ANSIBLE_DIR}/join_k8s.yml"
 KEY_FILE="${ANSIBLE_DIR}/kien.pem"
 
 if [[ ! -f "${TFVARS_FILE}" ]]; then
