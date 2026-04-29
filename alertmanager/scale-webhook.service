@@ -10,7 +10,7 @@ ExecStart=/usr/bin/python3 /home/ubuntu/alertmanager/scale_webhook.py
 Restart=always
 RestartSec=5
 EnvironmentFile=-/home/ubuntu/alertmanager/scale-webhook.env
-Environment=SCALE_WEBHOOK_HOST=127.0.0.1
+Environment=SCALE_WEBHOOK_HOST=0.0.0.0
 Environment=SCALE_WEBHOOK_PORT=5001
 Environment=SCALE_WEBHOOK_COOLDOWN_SECONDS=1800
 # Put server-specific values in alertmanager/scale-webhook.env.
