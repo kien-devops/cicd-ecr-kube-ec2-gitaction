@@ -1,0 +1,7 @@
+# Khai bao GatewayClass de Gateway API biet controller nao se xu ly Gateway.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: traefik
+spec:
+  controllerName: traefik.io/gateway-controller

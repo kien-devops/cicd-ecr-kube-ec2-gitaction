@@ -1,0 +1,10 @@
+services:
+  haproxy:
+    image: haproxy:2.9
+    container_name: haproxy-alb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro

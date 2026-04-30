@@ -1,0 +1,5 @@
+# Tao namespace rieng cho Traefik controller.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik

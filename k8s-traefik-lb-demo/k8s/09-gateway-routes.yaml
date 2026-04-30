@@ -1,0 +1,94 @@
+# Tao entrypoint Gateway HTTP tren port 8000.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: web-gateway-v1
+  namespace: default
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: web
+      protocol: HTTP
+      port: 8000
+      allowedRoutes:
+        namespaces:
+          from: Same
+
+---
+# Gioi han request vao API de tranh bi spam qua muc.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-rate-limit-v1
+  namespace: default
+spec:
+  rateLimit:
+    average: 10
+    burst: 20
+
+---
+# Middleware co the cat prefix /api neu backend khong dung prefix nay.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-strip-prefix-v1
+  namespace: default
+spec:
+  stripPrefix:
+    prefixes:
+      - /api
+
+---
+# Them cac security header co ban vao response.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers-v1
+  namespace: default
+spec:
+  headers:
+    frameDeny: true
+    browserXssFilter: true
+    contentTypeNosniff: true
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+
+---
+# Gom cac middleware can ap dung cho API vao mot chain.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-chain-v1
+  namespace: default
+spec:
+  chain:
+    middlewares:
+      - name: api-rate-limit-v1
+      - name: security-headers-v1
+
+---
+# Route /api ve backend truoc, sau do route / ve frontend.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web-route-v1
+  namespace: default
+spec:
+  parentRefs:
+    - name: web-gateway-v1
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: be-service-v1
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: fe-service-v1
+          port: 80

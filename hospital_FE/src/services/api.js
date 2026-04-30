@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-// Xử lý API URL
+// API URL
 // export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5247/api';
-export const API_BASE_URL = 'http://apibenhvien.teamdevops.shop:30080/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-// Xử lý Media URL - loại bỏ /api ở cuối
+// Media URL: remove trailing /api when API_BASE_URL includes it.
 export const MEDIA_BASE_URL = API_BASE_URL.endsWith('/api')
-  ? API_BASE_URL.slice(0, -4) // Cắt bỏ /api ở cuối
+  ? API_BASE_URL.slice(0, -4)
   : API_BASE_URL;
 
 const api = axios.create({
@@ -153,4 +153,4 @@ export const createPrescriptionDetail = (data) => api.post('/prescriptiondetails
 export const updatePrescriptionDetail = (id, data) => api.put(`/prescriptiondetails/${id}`, data);
 export const deletePrescriptionDetail = (id) => api.delete(`/prescriptiondetails/${id}`);
 
-export default api; 
+export default api;

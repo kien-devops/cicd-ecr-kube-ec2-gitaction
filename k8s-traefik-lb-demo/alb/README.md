@@ -1,0 +1,219 @@
+# HAProxy Edge Load Balancer
+
+This folder contains a small HAProxy setup that acts like an external load balancer in front of the Kubernetes worker nodes.
+
+## Architecture
+
+```text
+Client
+  -> DNS / HAProxy VPS public IP
+  -> HAProxy container
+  -> Kubernetes worker NodePort
+  -> Traefik Gateway
+  -> Frontend / Backend services
+```
+
+Example lab values:
+
+```text
+HAProxy VPS public IP: 13.251.125.252
+HAProxy VPS private IP: 172.31.8.147
+
+Worker 1 private IP: 172.31.14.7
+Worker 2 private IP: 172.31.5.164
+
+Traefik HTTP NodePort: 30080
+Traefik HTTPS NodePort: 30443
+```
+
+The domain should point to the HAProxy VPS public IP:
+
+```text
+benhvien.teamdevops.shop -> 13.251.125.252
+```
+
+## Files
+
+- `docker-compose.yml`: runs the HAProxy container and publishes ports `80` and `443`.
+- `haproxy.cfg`: defines the HAProxy frontend and backend worker nodes.
+
+## HAProxy Configuration
+
+The current HTTP backend forwards traffic to both Kubernetes workers through the Traefik HTTP NodePort:
+
+```cfg
+backend traefik_nodes_http
+    mode http
+    balance roundrobin
+    option httpchk
+    http-check send meth GET uri / ver HTTP/1.1 hdr Host benhvien.teamdevops.shop
+    server worker1 172.31.14.7:30080 check
+    server worker2 172.31.5.164:30080 check
+```
+
+Use the worker private IPs when the HAProxy VPS is in the same private network as the cluster.
+
+If the worker IPs change, update only these lines:
+
+```cfg
+server worker1 <WORKER_1_PRIVATE_IP>:30080 check
+server worker2 <WORKER_2_PRIVATE_IP>:30080 check
+```
+
+## Traefik Requirement
+
+The Traefik Service is exposed as a NodePort:
+
+```bash
+kubectl get svc -A | grep -i traefik
+```
+
+Expected output should include:
+
+```text
+80:30080/TCP,443:30443/TCP
+```
+
+If you want to run `kubectl` from the HAProxy VPS, copy the Kubernetes admin kubeconfig from the control-plane node.
+
+On the control-plane node:
+
+```bash
+sudo cat /etc/kubernetes/admin.conf
+```
+
+Copy the full output.
+
+On the HAProxy VPS:
+
+```bash
+mkdir -p ~/.kube
+nano ~/.kube/config
+chmod 600 ~/.kube/config
+```
+
+Paste the copied `admin.conf` content into `~/.kube/config`, then verify access:
+
+```bash
+kubectl get nodes -o wide
+```
+
+This step is only needed when the HAProxy VPS is used to run `kubectl`. If you run `kubectl` directly on the control-plane node, skip it.
+
+This setup uses `externalTrafficPolicy: Local` for Traefik. With this mode, every worker used by HAProxy should run a local Traefik pod.
+
+The Traefik deployment uses pod anti-affinity so the two Traefik replicas are scheduled on different nodes:
+
+```yaml
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: traefik
+        topologyKey: kubernetes.io/hostname
+```
+
+Apply the Traefik deployment:
+
+```bash
+kubectl apply -f ~/k8s-traefik-lb-demo/k8s/03-traefik-deployment.yaml
+kubectl rollout restart deployment/traefik -n traefik
+kubectl rollout status deployment/traefik -n traefik
+```
+
+Check that the Traefik pods are running on different workers:
+
+```bash
+kubectl get pods -n traefik -o wide
+```
+
+Expected placement:
+
+```text
+traefik-xxxxx   1/1   Running   ...   ip-172-31-14-7
+traefik-yyyyy   1/1   Running   ...   ip-172-31-5-164
+```
+
+## Run HAProxy
+
+Start HAProxy:
+
+```bash
+cd ~/k8s-traefik-lb-demo/alb
+docker-compose up -d
+```
+
+Or with Docker Compose v2:
+
+```bash
+docker compose up -d
+```
+
+Reload HAProxy after changing `haproxy.cfg`:
+
+```bash
+sudo docker restart haproxy-alb
+sudo docker logs --tail 50 haproxy-alb
+```
+
+## Test
+
+Test each worker NodePort from the HAProxy VPS:
+
+```bash
+curl -I http://172.31.14.7:30080
+curl -I http://172.31.5.164:30080
+```
+
+Both should return:
+
+```text
+HTTP/1.1 200 OK
+```
+
+Test through HAProxy:
+
+```bash
+curl -I http://13.251.125.252
+```
+
+Or through the domain:
+
+```bash
+curl -I http://benhvien.teamdevops.shop
+```
+
+## Verify Load Balancing
+
+Watch HAProxy logs:
+
+```bash
+sudo docker logs -f haproxy-alb
+```
+
+Send multiple requests from another terminal:
+
+```bash
+for i in {1..20}; do curl -s -o /dev/null -w "%{http_code}\n" http://13.251.125.252; done
+```
+
+The logs should show both workers:
+
+```text
+http_front traefik_nodes_http/worker1 ... "GET / HTTP/1.1"
+http_front traefik_nodes_http/worker2 ... "GET / HTTP/1.1"
+```
+
+Count requests per worker:
+
+```bash
+sudo docker logs haproxy-alb | grep -o "traefik_nodes_http/worker[12]" | sort | uniq -c
+```
+
+Expected result should be close to balanced:
+
+```text
+10 traefik_nodes_http/worker1
+10 traefik_nodes_http/worker2
+```

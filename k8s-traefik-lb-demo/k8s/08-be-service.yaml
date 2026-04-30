@@ -1,0 +1,13 @@
+# Tao ClusterIP Service noi bo de Gateway route traffic den backend pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: be-service-v1
+  namespace: default
+spec:
+  selector:
+    app: be-v1
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

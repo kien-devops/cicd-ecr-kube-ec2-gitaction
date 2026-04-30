@@ -1,0 +1,57 @@
+# Chay Traefik controller, bat Kubernetes Gateway API va Traefik CRD provider.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: traefik
+  labels:
+    app: traefik
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      serviceAccountName: traefik
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: traefik
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: traefik
+          image: traefik:v3.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - --log.level=INFO
+            - --api.dashboard=true
+            - --ping=true
+            - --providers.kubernetesgateway=true
+            - --providers.kubernetescrd=true
+            - --entrypoints.web.address=:8000
+            - --entrypoints.websecure.address=:443
+          ports:
+            - name: web
+              containerPort: 8000
+            - name: websecure
+              containerPort: 443
+            - name: traefik
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
