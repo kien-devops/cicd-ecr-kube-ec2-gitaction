@@ -18,7 +18,7 @@ spec:
         - name: ecr-secret
       containers:
         - name: fe-v1
-          image: 545587707922.dkr.ecr.ap-southeast-1.amazonaws.com/ecr-fe:latest
+          image: 545587707922.dkr.ecr.ap-southeast-1.amazonaws.com/ecr-fe:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 80
