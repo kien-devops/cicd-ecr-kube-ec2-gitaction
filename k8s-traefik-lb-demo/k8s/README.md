@@ -12,19 +12,19 @@ Traefik NodePort -> Gateway web-gateway-v1 -> HTTPRoute
 
 Main resources:
 
-- `00-namespace.yaml`: creates the `traefik` namespace for the controller.
+- `00-namespace.yaml`: creates the `traefik` and `hospital` namespaces.
 - `01-traefik-rbac.yaml`: grants Traefik access to Services, Gateway API resources, and Middleware CRDs.
 - `02-traefik-gatewayclass.yaml`: registers the Traefik GatewayClass.
 - `03-traefik-deployment.yaml`: runs Traefik with Gateway API and CRD providers enabled.
 - `04-traefik-service.yaml`: exposes Traefik through NodePort `30080` and `30443`.
-- `05` to `08`: deploy frontend/backend workloads and services in the `default` namespace.
-- `09-gateway-routes.yaml`: defines Gateway, Middleware, and HTTPRoutes in the `default` namespace.
+- `05` to `08`: deploy frontend/backend workloads and services in the `hospital` namespace.
+- `09-gateway-routes.yaml`: defines Gateway, Middleware, and HTTPRoutes in the `hospital` namespace.
 
 Prerequisites:
 
 - Gateway API CRDs installed.
 - Traefik CRDs installed for `Middleware`.
-- `ecr-secret` exists in the `default` namespace if the ECR images are private.
+- `ecr-secret` exists in the `hospital` namespace if the ECR images are private.
 
 Apply:
 

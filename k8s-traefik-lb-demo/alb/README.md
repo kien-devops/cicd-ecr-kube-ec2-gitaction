@@ -16,11 +16,11 @@ Client
 Example lab values:
 
 ```text
-HAProxy VPS public IP: 13.251.125.252
-HAProxy VPS private IP: 172.31.8.147
+HAProxy VPS public IP: <haproxy-public-ip>
+HAProxy VPS private IP: <haproxy-private-ip>
 
-Worker 1 private IP: 172.31.14.7
-Worker 2 private IP: 172.31.5.164
+Worker 1 private IP: <worker-1-private-ip>
+Worker 2 private IP: <worker-2-private-ip>
 
 Traefik HTTP NodePort: 30080
 Traefik HTTPS NodePort: 30443
@@ -29,7 +29,7 @@ Traefik HTTPS NodePort: 30443
 The domain should point to the HAProxy VPS public IP:
 
 ```text
-benhvien.teamdevops.shop -> 13.251.125.252
+benhvien.teamdevops.shop -> <haproxy-public-ip>
 ```
 
 ## Files
@@ -47,8 +47,8 @@ backend traefik_nodes_http
     balance roundrobin
     option httpchk
     http-check send meth GET uri / ver HTTP/1.1 hdr Host benhvien.teamdevops.shop
-    server worker1 172.31.14.7:30080 check
-    server worker2 172.31.5.164:30080 check
+    server worker1 <worker-1-private-ip>:30080 check
+    server worker2 <worker-2-private-ip>:30080 check
 ```
 
 Use the worker private IPs when the HAProxy VPS is in the same private network as the cluster.
@@ -131,8 +131,8 @@ kubectl get pods -n traefik -o wide
 Expected placement:
 
 ```text
-traefik-xxxxx   1/1   Running   ...   ip-172-31-14-7
-traefik-yyyyy   1/1   Running   ...   ip-172-31-5-164
+traefik-xxxxx   1/1   Running   ...   <worker-1-node-name>
+traefik-yyyyy   1/1   Running   ...   <worker-2-node-name>
 ```
 
 ## Run HAProxy
@@ -153,8 +153,8 @@ docker compose up -d
 Reload HAProxy after changing `haproxy.cfg`:
 
 ```bash
-sudo docker restart haproxy-alb
-sudo docker logs --tail 50 haproxy-alb
+docker restart haproxy-alb
+docker logs --tail 50 haproxy-alb
 ```
 
 ## Test
@@ -162,8 +162,8 @@ sudo docker logs --tail 50 haproxy-alb
 Test each worker NodePort from the HAProxy VPS:
 
 ```bash
-curl -I http://172.31.14.7:30080
-curl -I http://172.31.5.164:30080
+curl -I http://<worker-1-private-ip>:30080
+curl -I http://<worker-2-private-ip>:30080
 ```
 
 Both should return:
@@ -175,7 +175,7 @@ HTTP/1.1 200 OK
 Test through HAProxy:
 
 ```bash
-curl -I http://13.251.125.252
+curl -I http://<haproxy-public-ip>
 ```
 
 Or through the domain:
@@ -189,13 +189,13 @@ curl -I http://benhvien.teamdevops.shop
 Watch HAProxy logs:
 
 ```bash
-sudo docker logs -f haproxy-alb
+docker logs -f haproxy-alb
 ```
 
 Send multiple requests from another terminal:
 
 ```bash
-for i in {1..20}; do curl -s -o /dev/null -w "%{http_code}\n" http://13.251.125.252; done
+for i in {1..20}; do curl -s -o /dev/null -w "%{http_code}\n" http://<haproxy-public-ip>; done
 ```
 
 The logs should show both workers:
@@ -208,7 +208,7 @@ http_front traefik_nodes_http/worker2 ... "GET / HTTP/1.1"
 Count requests per worker:
 
 ```bash
-sudo docker logs haproxy-alb | grep -o "traefik_nodes_http/worker[12]" | sort | uniq -c
+docker logs haproxy-alb | grep -o "traefik_nodes_http/worker[12]" | sort | uniq -c
 ```
 
 Expected result should be close to balanced:

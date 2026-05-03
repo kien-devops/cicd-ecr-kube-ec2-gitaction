@@ -1,4 +1,4 @@
-# Chay Traefik controller, bat Kubernetes Gateway API va Traefik CRD provider.
+# Run Traefik with Kubernetes Gateway API and Traefik CRD providers enabled.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

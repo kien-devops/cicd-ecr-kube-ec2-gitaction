@@ -3,14 +3,14 @@ name: Build and Push on EC2
 on:
   push:
     branches:
-      - devops
+      - devops1
 
 env:
   REPO_DIR: /home/ubuntu/cicd-ecr-kube-ec2-gitaction
   REPO_URL: https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
   REGISTRY: ${{ secrets.ECR_REGISTRY }}
   AWS_REGION: ap-southeast-1
-  IMAGE_TAG: v1
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-push:
@@ -43,6 +43,10 @@ jobs:
 
           command -v aws >/dev/null 2>&1 || { echo "aws CLI is not installed on EC2"; exit 1; }
           command -v docker >/dev/null 2>&1 || { echo "docker is not installed on EC2"; exit 1; }
+          docker info >/dev/null 2>&1 || {
+              echo "Docker is not available for user $(whoami). Add the user to the docker group, for example: sudo usermod -aG docker ubuntu && newgrp docker"
+              exit 1
+          }
 
           if [ ! -d "$REPO_DIR/.git" ]; then
               rm -rf "$REPO_DIR"
@@ -55,11 +59,11 @@ jobs:
           fi
 
           cd "$REPO_DIR"
-          aws ecr get-login-password --region "$AWS_REGION" | sudo docker login --username AWS --password-stdin "$REGISTRY"
-          sudo docker build -t "ecr-fe:$IMAGE_TAG" -f hospital_FE/Dockerfile hospital_FE
-          sudo docker build -t "ecr-be:$IMAGE_TAG" -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
-          sudo docker tag "ecr-fe:$IMAGE_TAG" "$REGISTRY/ecr-fe:$IMAGE_TAG"
-          sudo docker tag "ecr-be:$IMAGE_TAG" "$REGISTRY/ecr-be:$IMAGE_TAG"
-          sudo docker push "$REGISTRY/ecr-fe:$IMAGE_TAG"
-          sudo docker push "$REGISTRY/ecr-be:$IMAGE_TAG"
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+          docker build -t "ecr-fe:$IMAGE_TAG" -f hospital_FE/Dockerfile hospital_FE
+          docker build -t "ecr-be:$IMAGE_TAG" -f hospital_BE/Hospital_API/Dockerfile hospital_BE/Hospital_API
+          docker tag "ecr-fe:$IMAGE_TAG" "$REGISTRY/ecr-fe:$IMAGE_TAG"
+          docker tag "ecr-be:$IMAGE_TAG" "$REGISTRY/ecr-be:$IMAGE_TAG"
+          docker push "$REGISTRY/ecr-fe:$IMAGE_TAG"
+          docker push "$REGISTRY/ecr-be:$IMAGE_TAG"
           EOF

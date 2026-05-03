@@ -1,5 +1,11 @@
-# Tao namespace rieng cho Traefik controller.
+# Create a dedicated namespace for the Traefik controller.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: traefik
+---
+# Create a dedicated namespace for the hospital application.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hospital

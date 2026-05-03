@@ -1,9 +1,9 @@
-# Tao entrypoint Gateway HTTP tren port 8000.
+# Create the HTTP Gateway entrypoint on port 8000.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: web-gateway-v1
-  namespace: default
+  namespace: hospital
 spec:
   gatewayClassName: traefik
   listeners:
@@ -15,36 +15,36 @@ spec:
           from: Same
 
 ---
-# Gioi han request vao API de tranh bi spam qua muc.
+# Limit API requests to reduce abuse.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: api-rate-limit-v1
-  namespace: default
+  namespace: hospital
 spec:
   rateLimit:
     average: 10
     burst: 20
 
 ---
-# Middleware co the cat prefix /api neu backend khong dung prefix nay.
+# Optional middleware to strip /api when the backend does not serve that prefix.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: api-strip-prefix-v1
-  namespace: default
+  namespace: hospital
 spec:
   stripPrefix:
     prefixes:
       - /api
 
 ---
-# Them cac security header co ban vao response.
+# Add baseline security headers to responses.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: security-headers-v1
-  namespace: default
+  namespace: hospital
 spec:
   headers:
     frameDeny: true
@@ -55,12 +55,12 @@ spec:
     stsPreload: true
 
 ---
-# Gom cac middleware can ap dung cho API vao mot chain.
+# Group API middleware in a reusable chain.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: api-chain-v1
-  namespace: default
+  namespace: hospital
 spec:
   chain:
     middlewares:
@@ -68,12 +68,12 @@ spec:
       - name: security-headers-v1
 
 ---
-# Route /api ve backend truoc, sau do route / ve frontend.
+# Route /api to the backend before falling back to the frontend.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: web-route-v1
-  namespace: default
+  namespace: hospital
 spec:
   parentRefs:
     - name: web-gateway-v1

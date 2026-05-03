@@ -3,13 +3,19 @@ variable "region" {
   type        = string
 }
 
+variable "project_name" {
+  description = "Project name used for common AWS tags."
+  type        = string
+  default     = "hospital"
+}
+
 variable "ami_id" {
   description = "Ubuntu AMI ID"
   type        = string
 }
 
 variable "instance_type" {
-  description = "Default EC2 instance type"
+  description = "Default EC2 instance type."
   type        = string
 }
 

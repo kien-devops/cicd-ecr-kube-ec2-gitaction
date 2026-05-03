@@ -5,7 +5,7 @@ This repository contains a full deployment workflow for a hospital web applicati
 The project has two main application components:
 
 - `hospital_FE`: frontend web application.
-- `hopital_BE/Hospital_API`: backend API application.
+- `hospital_BE/Hospital_API`: backend API application.
 
 The deployment model is split into these responsibilities:
 
@@ -23,7 +23,7 @@ flowchart LR
     GitHub -->|trigger workflow| Actions[GitHub Actions]
     Actions -->|SSH| BuildEC2[EC2 Build Server]
     BuildEC2 -->|docker build FE/BE| Docker[Docker Engine]
-    Docker -->|push ecr-fe:v1 and ecr-be:v1| ECR[Amazon ECR]
+    Docker -->|push commit-tagged images| ECR[Amazon ECR]
 
     GitHub -->|watched path| ArgoCD[ArgoCD Application]
     ArgoCD -->|sync manifests| K8s[Kubernetes Cluster]
@@ -48,12 +48,12 @@ flowchart LR
     subgraph Cluster[Kubernetes Cluster]
         ArgoNS[argocd namespace]
         TraefikNS[traefik namespace]
-        DefaultNS[default namespace]
+        HospitalNS[hospital namespace]
     end
 
     K8s --- ArgoNS
     K8s --- TraefikNS
-    K8s --- DefaultNS
+    K8s --- HospitalNS
 ```
 
 ## Deployment Flow
@@ -68,7 +68,7 @@ GitHub Actions connects to EC2 through SSH
 EC2 pulls the repository, builds FE and BE Docker images
         |
         v
-Images are tagged as v1 and pushed to Amazon ECR
+Images are tagged with the Git commit SHA and pushed to Amazon ECR
         |
         v
 ArgoCD watches k8s-traefik-lb-demo/k8s in GitHub
@@ -121,7 +121,7 @@ argocd/
   hospital-traefik-app.yaml    ArgoCD Application manifest
 
 k8s-traefik-lb-demo/k8s/
-  00-namespace.yaml            Traefik namespace
+  00-namespace.yaml            Traefik and hospital namespaces
   01-traefik-rbac.yaml         Traefik RBAC
   02-traefik-gatewayclass.yaml GatewayClass
   03-traefik-deployment.yaml   Traefik controller
@@ -133,7 +133,7 @@ k8s-traefik-lb-demo/k8s/
   09-gateway-routes.yaml       Gateway, HTTPRoute, and Middleware
 
 hospital_FE/                   Frontend source
-hopital_BE/Hospital_API/       Backend API source
+hospital_BE/Hospital_API/      Backend API source
 terraform/                     EC2 worker node provisioning
 ansible-web/                   Worker node bootstrap and kubeadm join
 prometheus/                    Monitoring config
@@ -155,13 +155,13 @@ The workflow runs on push to the configured branch and performs these steps:
 3. Clones or updates this repository on EC2.
 4. Logs in to Amazon ECR.
 5. Builds frontend and backend images.
-6. Pushes both images with tag `v1`.
+6. Pushes both images with tag `${{ github.sha }}`.
 
 Images pushed:
 
 ```text
-<ECR_REGISTRY>/ecr-fe:v1
-<ECR_REGISTRY>/ecr-be:v1
+<ECR_REGISTRY>/ecr-fe:<github-sha>
+<ECR_REGISTRY>/ecr-be:<github-sha>
 ```
 
 Required GitHub Secrets:
@@ -194,7 +194,7 @@ Application settings:
 Application name: hospital-traefik-app
 Project: default
 Destination cluster: https://kubernetes.default.svc
-Destination namespace: default
+Destination namespace: hospital
 Sync policy: automated, prune, selfHeal
 ```
 
@@ -207,7 +207,7 @@ Namespaces:
 ```text
 argocd    ArgoCD components
 traefik   Traefik Gateway controller and NodePort service
-default   Hospital frontend/backend app and Gateway resources
+hospital  Hospital frontend/backend app and Gateway resources
 ```
 
 Main traffic path:
@@ -224,8 +224,16 @@ User
 The frontend and backend deployments use ECR images:
 
 ```text
-<aws-account-id>.dkr.ecr.<aws-region>.amazonaws.com/ecr-fe:v1
-<aws-account-id>.dkr.ecr.<aws-region>.amazonaws.com/ecr-be:v1
+${ECR_REGISTRY}/ecr-fe:${IMAGE_TAG}
+${ECR_REGISTRY}/ecr-be:${IMAGE_TAG}
+```
+
+Render the variable-based image fields before applying the manifests directly:
+
+```bash
+ECR_REGISTRY=<aws-account-id>.dkr.ecr.<aws-region>.amazonaws.com \
+IMAGE_TAG=<github-sha> \
+./scripts/render-k8s-manifests.sh
 ```
 
 Because the images are private, Kubernetes needs this image pull secret in the `default` namespace:

@@ -1,4 +1,4 @@
-# Tao ServiceAccount de Traefik pod dung khi goi Kubernetes API.
+# Create the ServiceAccount used by Traefik to call the Kubernetes API.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

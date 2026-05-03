@@ -1,8 +1,8 @@
 ---
 - name: Prepare Kubernetes worker and join cluster
   hosts: web
-  gather_facts: no
-  become: yes
+  gather_facts: false
+  become: true
 
   pre_tasks:
     - name: Wait for SSH to become available

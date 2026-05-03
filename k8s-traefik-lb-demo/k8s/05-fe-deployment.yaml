@@ -1,9 +1,9 @@
-# Chay frontend hospital app tu ECR image.
+# Run the hospital frontend from the ECR image.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fe-deployment-v1
-  namespace: default
+  namespace: hospital
 spec:
   replicas: 2
   selector:
@@ -18,7 +18,26 @@ spec:
         - name: ecr-secret
       containers:
         - name: fe-v1
-          image: 545587707922.dkr.ecr.ap-southeast-1.amazonaws.com/ecr-fe:v1
+          image: ${ECR_REGISTRY}/ecr-fe:${IMAGE_TAG}
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

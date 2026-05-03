@@ -11,7 +11,7 @@ spec:
     path: k8s-traefik-lb-demo/k8s
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: hospital
   syncPolicy:
     automated:
       prune: true

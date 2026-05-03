@@ -7,6 +7,6 @@ services:
       - 5173:80
   backend:
     container_name: cons-dotnet
-    build: ./hopital_BE/Hospital_API
+    build: ./hospital_BE/Hospital_API
     ports:
       - 5247:8080

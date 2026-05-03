@@ -2,13 +2,30 @@
 
 Use Terraform to create EC2 worker nodes and generate the Ansible inventory file.
 
+## Directory Structure
+
+```text
+terraform/
+  main.tf                         Root provider and module calls
+  moved.tf                        State move hints for the module refactor
+  variables.tf                    Root input variables
+  outputs.tf                      Root outputs exposed from modules
+  terraform.tfvars.example        Example local values
+  modules/
+    ec2-workers/
+      main.tf                     EC2 worker and Ansible inventory resources
+      variables.tf                Module input variables
+      outputs.tf                  Module outputs
+```
+
 ## Model
 
 ```mermaid
 flowchart LR
     TFVARS[terraform.tfvars] --> TF[Terraform]
-    TF -->|create| EC2[EC2 Worker Nodes]
-    TF -->|write| INV[ansible-web/hosts.ini]
+    TF --> MODULE[modules/ec2-workers]
+    MODULE -->|create| EC2[EC2 Worker Nodes]
+    MODULE -->|write| INV[ansible-web/hosts.ini]
     INV --> ANSIBLE[Ansible join_k8s.yml]
 ```
 
@@ -24,6 +41,7 @@ Edit `terraform/terraform.tfvars`:
 
 ```hcl
 region            = "ap-southeast-1"
+project_name      = "hospital"
 ami_id            = "ami-xxxxxxxxxxxxxxxxx"
 instance_type     = "t2.micro"
 key_name          = "your-keypair-name"
@@ -44,10 +62,12 @@ nodes = {
 ```bash
 cd terraform
 terraform init
-terraform fmt
+terraform fmt -recursive
 terraform plan
 terraform apply
 ```
+
+The root includes `moved` blocks so existing state can move from the old root resources into `module.ec2_workers` without recreating the worker instances.
 
 Show outputs:
 
@@ -100,3 +120,13 @@ The generated inventory is used by Ansible:
 ```bash
 ansible-playbook -i ansible-web/hosts.ini ansible-web/join_k8s.yml
 ```
+
+## Modules
+
+The root configuration calls `modules/ec2-workers` and passes the values from `terraform.tfvars`.
+
+The `ec2-workers` module owns:
+
+- EC2 worker instances.
+- Common tags, including `Monitoring=enabled` for Prometheus EC2 service discovery.
+- The generated Ansible inventory file.

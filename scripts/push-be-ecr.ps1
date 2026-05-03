@@ -14,7 +14,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$dockerContext = Join-Path $repoRoot "hopital_BE\Hospital_API"
+$dockerContext = Join-Path $repoRoot "hospital_BE\Hospital_API"
 $dockerfilePath = Join-Path $dockerContext "Dockerfile"
 $repositoryUri = "$AwsAccountId.dkr.ecr.$Region.amazonaws.com/$RepositoryName"
 $imageUri = "${repositoryUri}:$ImageTag"

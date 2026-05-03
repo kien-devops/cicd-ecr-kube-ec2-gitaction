@@ -1,4 +1,5 @@
 region            = "ap-southeast-1"
+project_name      = "hospital"
 ami_id            = "ami-xxxxxxxxxxxxxxxxx"
 instance_type     = "t2.micro"
 key_name          = "your-keypair-name"
