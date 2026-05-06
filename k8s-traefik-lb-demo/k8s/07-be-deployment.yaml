@@ -14,8 +14,6 @@ spec:
       labels:
         app: be-v1
     spec:
-      imagePullSecrets:
-        - name: ecr-secret
       containers:
         - name: be-v1
           image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:5fc32b772034ee9f72e88ce012681083508953c7

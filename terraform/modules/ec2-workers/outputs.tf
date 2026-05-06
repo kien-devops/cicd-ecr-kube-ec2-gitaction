@@ -26,3 +26,13 @@ output "instance_names" {
   description = "Worker node names from the input map."
   value       = keys(var.nodes)
 }
+
+output "worker_iam_role_name" {
+  description = "IAM role name attached to EC2 worker nodes."
+  value       = aws_iam_role.worker_role.name
+}
+
+output "worker_iam_instance_profile_name" {
+  description = "IAM instance profile name attached to EC2 worker nodes."
+  value       = aws_iam_instance_profile.worker_profile.name
+}
