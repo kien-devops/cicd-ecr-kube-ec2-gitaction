@@ -25,9 +25,6 @@ kubectl wait --for=condition=Established crd/gateways.gateway.networking.k8s.io 
 kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=120s
 kubectl wait --for=condition=Established crd/middlewares.traefik.io --timeout=120s
 
-echo "Creating ECR image pull secret..."
-bash "${SCRIPT_DIR}/create-ecr-secret.sh"
-
 echo "Applying Traefik and application manifests..."
 kubectl apply -f "${SCRIPT_DIR}"
 

@@ -18,6 +18,7 @@ resource "aws_instance" "node" {
   instance_type          = coalesce(each.value.instance_type, var.instance_type)
   key_name               = var.key_name
   vpc_security_group_ids = [data.aws_security_group.selected.id]
+  iam_instance_profile   = aws_iam_instance_profile.worker_profile.name
 
   tags = merge(local.common_tags, var.extra_tags, {
     Name = each.key

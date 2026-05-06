@@ -1,78 +1,73 @@
-# Kubernetes Traefik Gateway Stack
+# 🚦 Kubernetes Traefik Gateway Stack
 
-This folder deploys Traefik as a Kubernetes Gateway API controller and routes the hospital app through one domain.
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Traefik](https://img.shields.io/badge/Traefik-24A1C1?style=for-the-badge&logo=TraefikProxy&logoColor=white)
 
-Traffic flow inside the cluster:
+This directory contains the Kubernetes manifests to deploy Traefik as a **Gateway API** controller alongside the core hospital application workloads (Frontend and Backend).
 
-```text
-Traefik NodePort -> Gateway web-gateway-v1 -> HTTPRoute
-/api -> be-service-v1 -> backend pods
-/    -> fe-service-v1 -> frontend pods
+---
+
+## 🏗 Traffic Flow Architecture
+
+```mermaid
+flowchart TD
+    Client([External Load Balancer / HAProxy])
+    
+    Client -->|NodePort :30080| TraefikSvc[Traefik Service]
+    
+    TraefikSvc --> Gateway[Gateway: web-gateway-v1]
+    
+    Gateway --> Route[HTTPRoute: web-route-v1]
+    
+    subgraph Middlewares
+        Route --> RateLimit[Rate Limit: 10 req/s]
+        RateLimit --> Prefix[Strip Prefix /api]
+    end
+    
+    Prefix --> Condition{Path matching}
+    
+    Condition -->|/api/*| BE[Backend Service: be-service-v1]
+    Condition -->|/*| FE[Frontend Service: fe-service-v1]
+    
+    BE --> BEPods(Backend API Pods)
+    FE --> FEPods(Frontend React Pods)
 ```
 
-Main resources:
+---
 
-- `00-namespace.yaml`: creates the `traefik` and `hospital` namespaces.
-- `01-traefik-rbac.yaml`: grants Traefik access to Services, Gateway API resources, and Middleware CRDs.
-- `02-traefik-gatewayclass.yaml`: registers the Traefik GatewayClass.
-- `03-traefik-deployment.yaml`: runs Traefik as a DaemonSet with Gateway API and CRD providers enabled.
-- `04-traefik-service.yaml`: exposes Traefik through NodePort `30080` and `30443`.
-- `05` to `08`: deploy frontend/backend workloads and services in the `hospital` namespace.
-- `09-gateway-routes.yaml`: defines Gateway, Middleware, and HTTPRoutes in the `hospital` namespace.
+## 📂 Manifests Breakdown
 
-Prerequisites:
+| File | Purpose |
+|---|---|
+| `00-namespace.yaml` | Creates `traefik` and `hospital` namespaces. |
+| `01-traefik-rbac.yaml` | ClusterRoles/Bindings for Traefik to read Gateways & Services. |
+| `02-traefik-gatewayclass.yaml` | Registers the Traefik `GatewayClass`. |
+| `03-traefik-deployment.yaml` | Deploys Traefik as a DaemonSet across worker nodes. |
+| `04-traefik-service.yaml` | Exposes Traefik globally via NodePort `30080` (HTTP) and `30443` (HTTPS). |
+| `05` to `08` | Frontend and Backend Deployments + ClusterIP Services. |
+| `09-gateway-routes.yaml` | Defines `Gateway`, Traefik `Middleware` (Rate Limits, Headers), and `HTTPRoute`. |
 
-- The machine running the apply command can reach GitHub to install CRDs.
-- AWS CLI is configured with permission to read ECR auth tokens.
+---
 
-Apply:
+## 🔒 ECR Authentication
+
+The Deployments (`05` and `07`) pull private images from Amazon ECR **without `imagePullSecrets`**.
+Authentication is securely delegated to the **AWS IAM Instance Profiles** attached directly to the EC2 worker nodes by Terraform. 
+
+---
+
+## 🚀 Deployment / Setup
+
+The provided shell script automatically checks for and installs required custom CRDs (Gateway API `v1.3.0` and Traefik v3 CRDs) before applying the local manifests.
 
 ```bash
 cd k8s-traefik-lb-demo
 bash k8s/apply.sh
 ```
 
-The script checks for CRDs first, installs Gateway API CRDs v1.3.0 and Traefik CRDs v3.0 when missing, waits for them to be ready, then applies the local manifests. Running only `kubectl apply -f k8s/` on a fresh cluster fails because `GatewayClass`, `Gateway`, `HTTPRoute`, and Traefik `Middleware` are custom resources.
+*(Note: In the full GitOps flow, ArgoCD handles the synchronization of these manifests automatically.)*
 
-The script also creates the ECR image pull secret used by frontend/backend deployments:
-
+### Verify Deployment:
 ```bash
-ECR_PASSWORD=$(aws ecr get-login-password --region us-east-1)
-kubectl create secret docker-registry ecr-secret \
-  --docker-server=606030503959.dkr.ecr.us-east-1.amazonaws.com \
-  --docker-username=AWS \
-  --docker-password="${ECR_PASSWORD}" \
-  -n hospital
-```
-
-To refresh only the ECR secret:
-
-```bash
-bash k8s/create-ecr-secret.sh
-```
-
-Manual CRD checks:
-
-```bash
-kubectl get crd | grep -E 'gatewayclasses|gateways|httproutes|middlewares'
-kubectl get crd | grep gateway.networking.k8s.io
-kubectl get crd | grep traefik
-```
-
-Manual install if needed:
-
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
-kubectl apply -f k8s/
-```
-
-Verify:
-
-```bash
-kubectl get pods -A
-kubectl get gatewayclass
-kubectl get gateway -A
-kubectl get httproute -A
-kubectl get middleware -A
-```
+kubectl get pods -n hospital
+kubectl get gateway,httproute -n hospital

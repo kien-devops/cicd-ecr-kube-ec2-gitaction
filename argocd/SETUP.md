@@ -64,39 +64,7 @@ kubectl get crd middlewares.traefik.io
 
 If either CRD is missing, install the required Gateway API and Traefik CRDs before syncing the app.
 
-## 6. Create ECR Image Pull Secret
-
-The frontend and backend deployments use private ECR images and expect this secret in the `hospital` namespace:
-
-```text
-ecr-secret
-```
-
-Create or recreate it:
-
-```bash
-kubectl delete secret ecr-secret -n hospital --ignore-not-found
-```
-
-```bash
-ECR_PASSWORD=$(aws ecr get-login-password --region ap-southeast-1)
-```
-
-```bash
-kubectl create secret docker-registry ecr-secret \
-  --docker-server=<ecr-registry> \
-  --docker-username=AWS \
-  --docker-password="$ECR_PASSWORD" \
-  -n hospital
-```
-
-Verify:
-
-```bash
-kubectl get secret ecr-secret -n hospital
-```
-
-## 7. Create ArgoCD Application
+## 6. Create ArgoCD Application
 
 Apply the Application manifest from this folder:
 
@@ -106,7 +74,7 @@ kubectl apply -f argocd/hospital-traefik-app.yaml
 
 Or paste the content of `hospital-traefik-app.yaml` into the ArgoCD UI with `+ New App` using YAML mode.
 
-## 8. Sync and Verify
+## 7. Sync and Verify
 
 Check the Application:
 
@@ -129,7 +97,7 @@ Open the hospital app:
 http://<server-public-ip>:30080
 ```
 
-## Notes
+## 8. Notes
 
 - Git is the source of truth. Long-term changes should be committed and pushed to GitHub.
 - If a pod is deleted manually, Kubernetes recreates it through its Deployment.

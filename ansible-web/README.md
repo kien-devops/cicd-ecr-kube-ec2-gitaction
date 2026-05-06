@@ -1,89 +1,71 @@
-# Ansible
+# ⚙️ Ansible Configuration Management
 
-Run Ansible to prepare a new EC2 instance and join it as a Kubernetes worker node.
+![Ansible](https://img.shields.io/badge/ansible-%231A1918.svg?style=for-the-badge&logo=ansible&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 
-## Model
+This directory contains the Ansible playbooks and scripts responsible for bootstrapping new EC2 instances and joining them to the Kubernetes cluster.
+
+---
+
+## 🏗 Architecture Model
 
 ```mermaid
 flowchart LR
-    TF[Terraform<br/>hosts.ini] -->|inventory| ANSIBLE[Ansible<br/>join_k8s.yml]
-    ENV[.env<br/>kubeadm join command] --> ANSIBLE
-    ANSIBLE -->|run common.sh| NODE[EC2 Worker Node]
+    TF[Terraform<br/>hosts.ini] -->|Dynamic Inventory| ANSIBLE[Ansible<br/>join_k8s.yml]
+    ENV[.env<br/>kubeadm join cmd] --> ANSIBLE
+    ANSIBLE -->|Install Docker/Kubelet| NODE[EC2 Worker Node]
     NODE -->|kubeadm join| K8S[Kubernetes Cluster]
+    ANSIBLE -->|Optional| ALB[Reload HAProxy]
 ```
 
-## Prepare Environment
+---
 
-Create the environment file:
+## 🛠 Preparation
 
+### 1. Environment Variables
+
+Create the `.env` file from the example:
 ```bash
-cp ansible-web/.env.example ansible-web/.env
+cp .env.example .env
 ```
 
-Edit `ansible-web/.env` and add the real `kubeadm join` command:
-
-```bash
-KUBEADM_JOIN_COMMAND=kubeadm join <CONTROL_PLANE_PRIVATE_IP>:6443 --token <TOKEN> --discovery-token-ca-cert-hash sha256:<CA_CERT_HASH>
-```
-
-If Terraform, Ansible, `kubectl`, Docker, and HAProxy all run on the same `servermonitor`, leave `ALB_RELOAD_TARGET` empty:
-
-```bash
-ALB_RELOAD_TARGET=
-```
-
-With this default setup, the full provision flow creates a worker, joins it to Kubernetes, then runs the local HAProxy reload on `servermonitor`.
-
-Only set the remote reload target if HAProxy runs on another server:
-
-```bash
-ALB_RELOAD_TARGET=ubuntu@<HAPROXY_SERVER_PRIVATE_IP>
-ALB_RELOAD_SSH_KEY=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/kien.pem
-ALB_RELOAD_SSH_PORT=22
-ALB_RELOAD_DIR=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb
-```
-
-Generate a new join command on the Kubernetes control plane if needed:
-
+Update it with your valid Kubernetes join command. You can generate a fresh token from your control plane:
 ```bash
 kubeadm token create --print-join-command
 ```
 
-## Run Ansible
-
-Make sure these files exist:
-
-```text
-ansible-web/.env
-ansible-web/hosts.ini
-ansible-web/kien.pem
+Update `.env`:
+```env
+KUBEADM_JOIN_COMMAND="kubeadm join <CP_IP>:6443 --token <TOKEN> --discovery-token-ca-cert-hash sha256:<HASH>"
 ```
 
-Set SSH key permission:
+### 2. SSH Keys
 
+Ensure your private key is present and strictly scoped:
 ```bash
-chmod 400 ansible-web/kien.pem
+chmod 400 kien.pem
 ```
 
-Run the playbook:
+---
 
+## 🚀 Running Ansible
+
+### Standalone Run
+If Terraform has already generated `hosts.ini`, you can run the playbook directly:
 ```bash
-cd ansible-web
 ansible-playbook -i hosts.ini join_k8s.yml
 ```
 
-## Run Full Provision Flow
-
-From the repository root, create one EC2 node with Terraform and run Ansible automatically:
-
+### Full Provisioning Flow (Recommended)
+To execute the complete auto-scaling flow (Terraform provisioning + Ansible configuration) in one shot:
 ```bash
-bash ansible-web/provision-ec2-and-run-ansible.sh
+bash provision-ec2-and-run-ansible.sh
 ```
 
-## Verify
+---
 
-Check the worker node from the Kubernetes control plane:
+## 🔄 HAProxy Reload Integration
 
-```bash
-kubectl get nodes -o wide
-```
+If you are using HAProxy as an external Load Balancer (`k8s-traefik-lb-demo/alb`), Ansible can optionally trigger a graceful HAProxy reload after the new node joins the cluster. 
+
+To enable this, configure the `ALB_RELOAD_*` variables inside `.env`. If running locally on the same management server, leave `ALB_RELOAD_TARGET` blank.
