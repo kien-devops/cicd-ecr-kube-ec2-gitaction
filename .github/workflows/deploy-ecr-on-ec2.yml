@@ -52,12 +52,12 @@ jobs:
 
           if [ ! -d "$REPO_DIR/.git" ]; then
               rm -rf "$REPO_DIR"
-              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b main "$REPO_URL" "$REPO_DIR"
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b ${{ github.ref_name }} "$REPO_URL" "$REPO_DIR"
           else
               cd "$REPO_DIR"
               git remote set-url origin "$REPO_URL"
-              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin main
-              git reset --hard origin/main
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin ${{ github.ref_name }}
+              git reset --hard origin/${{ github.ref_name }}
           fi
 
           cd "$REPO_DIR"
@@ -89,4 +89,4 @@ jobs:
           git add k8s-traefik-lb-demo/k8s/05-fe-deployment.yaml
           git add k8s-traefik-lb-demo/k8s/07-be-deployment.yaml
           git commit -m "ci: update image tag to ${{ github.sha }}"
-          git push origin devops1
+          git push origin devops
