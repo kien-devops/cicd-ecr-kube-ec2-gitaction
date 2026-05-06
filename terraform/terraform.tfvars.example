@@ -7,9 +7,3 @@ security_group_id = "sg-xxxxxxxxxxxxxxxxx"
 vpc_id            = "vpc-xxxxxxxxxxxxxxxxx"
 
 ansible_inventory_path = "/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/hosts.ini"
-
-nodes = {
-  node1 = {
-    instance_type = "t3.small"
-  }
-}

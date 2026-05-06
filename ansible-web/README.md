@@ -26,6 +26,23 @@ Edit `ansible-web/.env` and add the real `kubeadm join` command:
 KUBEADM_JOIN_COMMAND=kubeadm join <CONTROL_PLANE_PRIVATE_IP>:6443 --token <TOKEN> --discovery-token-ca-cert-hash sha256:<CA_CERT_HASH>
 ```
 
+If Terraform, Ansible, `kubectl`, Docker, and HAProxy all run on the same `servermonitor`, leave `ALB_RELOAD_TARGET` empty:
+
+```bash
+ALB_RELOAD_TARGET=
+```
+
+With this default setup, the full provision flow creates a worker, joins it to Kubernetes, then runs the local HAProxy reload on `servermonitor`.
+
+Only set the remote reload target if HAProxy runs on another server:
+
+```bash
+ALB_RELOAD_TARGET=ubuntu@<HAPROXY_SERVER_PRIVATE_IP>
+ALB_RELOAD_SSH_KEY=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/kien.pem
+ALB_RELOAD_SSH_PORT=22
+ALB_RELOAD_DIR=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb
+```
+
 Generate a new join command on the Kubernetes control plane if needed:
 
 ```bash

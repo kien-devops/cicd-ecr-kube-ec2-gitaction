@@ -17,6 +17,15 @@ route:
       group_interval: 5m
       repeat_interval: 30m
       continue: false
+    - matchers:
+        - alertname="LowAverageNodeCpuUsage"
+        - action="scale-down-ec2"
+      receiver: scale-ec2-webhook
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 30m
+      continue: false
 
 receivers:
   - name: default-receiver

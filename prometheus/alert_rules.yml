@@ -19,3 +19,13 @@ groups:
         annotations:
           summary: "Average node CPU usage is above 50%"
           description: "Average CPU usage across node_exporter targets is {{ $value | printf \"%.2f\" }}% for more than 2 minutes."
+
+      - alert: LowAverageNodeCpuUsage
+        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{job="node_exporter", mode="idle"}[5m]))) < 50
+        for: 5m
+        labels:
+          severity: warning
+          action: scale-down-ec2
+        annotations:
+          summary: "Average node CPU usage is below 50%"
+          description: "Average CPU usage across node_exporter targets is {{ $value | printf \"%.2f\" }}% for more than 5 minutes."

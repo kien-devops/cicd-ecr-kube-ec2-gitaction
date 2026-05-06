@@ -14,6 +14,11 @@ flowchart LR
     PROM -->|send alerts| ALERT[Alertmanager<br/>:9093]
 ```
 
+`alert_rules.yml` contains two EC2 scaling alerts:
+
+- `HighAverageNodeCpuUsage`: average CPU above 50% for 2 minutes, action `scale-ec2`.
+- `LowAverageNodeCpuUsage`: average CPU below 50% for 5 minutes, action `scale-down-ec2`.
+
 ## Run With Docker
 
 Create the Docker network if it does not already exist:

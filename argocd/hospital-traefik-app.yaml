@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
-    targetRevision: devops1
+    targetRevision: devops
     path: k8s-traefik-lb-demo/k8s
   destination:
     server: https://kubernetes.default.svc

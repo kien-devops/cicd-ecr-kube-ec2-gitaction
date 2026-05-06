@@ -14,8 +14,18 @@ bash alertmanager/render-config.sh
 ```mermaid
 flowchart LR
     PROM[Prometheus<br/>:9090] -->|send alerts| ALERT[Alertmanager<br/>:9093]
-    ALERT -->|route alert| WEBHOOK[Scale Webhook<br/>:5001]
+    ALERT -->|HighAverageNodeCpuUsage| WEBHOOK[Scale Webhook<br/>:5001]
+    ALERT -->|LowAverageNodeCpuUsage| WEBHOOK
+    WEBHOOK -->|scale out| ADD[terraform/add-node.sh]
+    WEBHOOK -->|scale in| REMOVE[terraform/remove-node.sh]
 ```
+
+The same webhook handles scale-out and scale-in:
+
+- `HighAverageNodeCpuUsage` with `action=scale-ec2` adds one EC2 worker.
+- `LowAverageNodeCpuUsage` with `action=scale-down-ec2` removes one Terraform-managed worker.
+
+Set `SCALE_WEBHOOK_MIN_TERRAFORM_NODES` in `scale-webhook.env` to keep a minimum number of Terraform nodes. The default is `1`, so scale-in will not remove the last `nodeN` entry from `terraform.tfvars`.
 
 ## Run With Docker
 

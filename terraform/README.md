@@ -99,6 +99,12 @@ Remove the latest node automatically:
 bash terraform/remove-node.sh
 ```
 
+By default, the script keeps at least one Terraform node and only removes numbered `nodeN` entries from `terraform.tfvars`. Override the minimum when needed:
+
+```bash
+MIN_TERRAFORM_NODES=2 bash terraform/remove-node.sh
+```
+
 Remove a specific node:
 
 ```bash

@@ -1,6 +1,7 @@
 # HAProxy Edge Load Balancer
 
 This folder contains a small HAProxy setup that acts like an external load balancer in front of the Kubernetes worker nodes.
+In this lab, run this folder on `servermonitor`. That same server can own monitoring, Terraform, Ansible, Docker, `kubectl`, and the public ALB/HAProxy IP.
 
 ## Architecture
 
@@ -32,13 +33,68 @@ The domain should point to the HAProxy VPS public IP:
 benhvien.teamdevops.shop -> <haproxy-public-ip>
 ```
 
+## Zero-Downtime Scale-Out Model
+
+In this setup, scaling out means adding one new EC2 worker to Kubernetes, waiting for Traefik to run on that worker, then adding the worker IP to HAProxy without restarting the HAProxy container.
+
+The full flow runs from `servermonitor`:
+
+```text
+Prometheus detects high CPU
+  -> Alertmanager sends webhook to scale_webhook.py
+  -> Terraform adds one EC2 worker
+  -> Ansible installs packages and runs kubeadm join
+  -> Kubernetes marks the new worker Ready
+  -> Traefik DaemonSet starts a Traefik pod on the new worker
+  -> reload-haproxy.sh discovers Running Traefik pods
+  -> haproxy.cfg is regenerated with the new worker backend
+  -> HAProxy validates the new config
+  -> HAProxy receives SIGUSR2 and reloads gracefully
+```
+
+During this flow, the existing workers stay in HAProxy and continue serving traffic. The new worker is only added after `discover-traefik-nodes.sh` can see a Running Traefik pod on that node. This matters because the Traefik Service uses `externalTrafficPolicy: Local`; HAProxy should only send traffic to nodes that have a local Traefik pod.
+
+Example before scale-out:
+
+```cfg
+backend traefik_nodes_http
+    server worker1 10.0.1.11:30080 check
+    server worker2 10.0.1.12:30080 check
+```
+
+After Terraform and Ansible add `node3`, Kubernetes schedules Traefik there. The discovery script then writes:
+
+```cfg
+backend traefik_nodes_http
+    server worker1 10.0.1.11:30080 check
+    server worker2 10.0.1.12:30080 check
+    server worker3 10.0.1.13:30080 check
+```
+
+The reload step is:
+
+```bash
+docker exec haproxy-alb haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
+docker kill -s USR2 haproxy-alb
+```
+
+The first command prevents a bad config from being loaded. If validation fails, the current HAProxy process keeps running with the old working config. The second command triggers HAProxy master-worker reload: a new worker starts with the updated backend list, while the old worker continues serving existing connections until they finish.
+
+This is why normal scale-out does not use:
+
+```bash
+docker restart haproxy-alb
+```
+
+Restarting the container stops HAProxy, closes the listening socket, and creates a short downtime window. Graceful reload keeps HAProxy running while the backend list changes.
+
 ## Files
 
 - `docker-compose.yml`: runs the HAProxy container and publishes ports `80` and `443`.
 - `.env.example`: environment variables for real domain, NodePort, and Kubernetes discovery.
 - `haproxy.cfg.tpl`: HAProxy template.
 - `discover-traefik-nodes.sh`: discovers Kubernetes nodes running Traefik and writes `haproxy.cfg`.
-- `reload-haproxy.sh`: discovers nodes, rewrites `haproxy.cfg`, and restarts the HAProxy container if it is running.
+- `reload-haproxy.sh`: discovers nodes, rewrites `haproxy.cfg`, validates it, and gracefully reloads HAProxy if it is running.
 - `haproxy.cfg`: generated HAProxy config mounted by Docker Compose.
 
 ## HAProxy Configuration
@@ -67,7 +123,16 @@ backend traefik_nodes_http
     http-check send meth GET uri / ver HTTP/1.1 hdr Host benhvien.teamdevops.shop
     server worker1 10.0.1.11:30080 check
     server worker2 10.0.1.12:30080 check
+
+backend traefik_nodes_https
+    mode tcp
+    balance roundrobin
+    option tcp-check
+    server worker1 10.0.1.11:30443 check
+    server worker2 10.0.1.12:30443 check
 ```
+
+HAProxy handles HTTP on port `80` in HTTP mode. HTTPS on port `443` is configured as TCP pass-through to Traefik `websecure` NodePort `30443`. That means HAProxy does not terminate TLS and does not need certificate files. TLS certificates and HTTPS routing must be configured in Traefik/Kubernetes.
 
 Use `KUBE_NODE_ADDRESS_TYPE=InternalIP` when the HAProxy VPS is in the same private network as the cluster. Use `ExternalIP` only when HAProxy reaches workers through public addresses.
 
@@ -75,7 +140,8 @@ If the worker IPs change, rerun discovery and reload HAProxy:
 
 ```bash
 bash ./discover-traefik-nodes.sh
-docker restart haproxy-alb
+docker exec haproxy-alb haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
+docker kill -s USR2 haproxy-alb
 ```
 
 Or run both steps with:
@@ -98,7 +164,9 @@ Expected output should include:
 80:30080/TCP,443:30443/TCP
 ```
 
-If you want to run `kubectl` from the HAProxy VPS, copy the Kubernetes admin kubeconfig from the control-plane node.
+The current Traefik DaemonSet exposes the `websecure` entrypoint on container port `443`, and the Service exposes it through NodePort `30443`. HAProxy forwards public `443` traffic to that NodePort.
+
+Because `reload-haproxy.sh` runs on `servermonitor`, copy the Kubernetes admin kubeconfig from the control-plane node to `servermonitor`. The script uses `kubectl` from `servermonitor` to discover Traefik nodes before gracefully reloading HAProxy.
 
 On the control-plane node:
 
@@ -108,7 +176,7 @@ sudo cat /etc/kubernetes/admin.conf
 
 Copy the full output.
 
-On the HAProxy VPS:
+On `servermonitor`:
 
 ```bash
 mkdir -p ~/.kube
@@ -122,7 +190,7 @@ Paste the copied `admin.conf` content into `~/.kube/config`, then verify access:
 kubectl get nodes -o wide
 ```
 
-This step is only needed when the HAProxy VPS is used to run `kubectl`. If you run `kubectl` directly on the control-plane node, skip it.
+This step is required for the one-servermonitor setup because HAProxy reload discovery runs from `servermonitor`, not from the control-plane node.
 
 This setup uses `externalTrafficPolicy: Local` for Traefik. With this mode, every worker used by HAProxy should run a local Traefik pod.
 
@@ -169,9 +237,12 @@ docker compose up -d
 Reload HAProxy after changing `haproxy.cfg`:
 
 ```bash
-docker restart haproxy-alb
+docker exec haproxy-alb haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
+docker kill -s USR2 haproxy-alb
 docker logs --tail 50 haproxy-alb
 ```
+
+Do not use `docker restart haproxy-alb` for normal backend updates. Restarting the container closes the listening socket and causes a short downtime window. The reload command above keeps the old HAProxy worker alive for existing connections while a new worker starts with the updated backend list.
 
 ## Test
 
@@ -198,6 +269,12 @@ Or through the domain:
 
 ```bash
 curl -I http://benhvien.teamdevops.shop
+```
+
+If Traefik has a TLS listener and certificate configured, test HTTPS:
+
+```bash
+curl -Ik https://benhvien.teamdevops.shop
 ```
 
 ## Verify Load Balancing

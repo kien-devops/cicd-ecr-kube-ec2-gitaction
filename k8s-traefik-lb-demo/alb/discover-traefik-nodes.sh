@@ -13,6 +13,7 @@ fi
 
 : "${ALB_DOMAIN:=benhvien.teamdevops.shop}"
 : "${TRAEFIK_HTTP_NODEPORT:=30080}"
+: "${TRAEFIK_HTTPS_NODEPORT:=30443}"
 : "${KUBE_NODE_SELECTOR:=}"
 : "${DISCOVER_TRAEFIK_PODS:=true}"
 : "${TRAEFIK_NAMESPACE:=traefik}"
@@ -42,7 +43,8 @@ else
   traefik_nodes=("${all_nodes[@]}")
 fi
 
-backend_servers=""
+http_backend_servers=""
+https_backend_servers=""
 index=1
 for node in "${all_nodes[@]}"; do
   [ -n "${node}" ] || continue
@@ -61,19 +63,24 @@ for node in "${all_nodes[@]}"; do
   node_ip="$(kubectl get node "${node}" -o jsonpath="{.status.addresses[?(@.type=='${KUBE_NODE_ADDRESS_TYPE}')].address}")"
   [ -n "${node_ip}" ] || continue
 
-  backend_servers+="    server worker${index} ${node_ip}:${TRAEFIK_HTTP_NODEPORT} check"$'\n'
+  http_backend_servers+="    server worker${index} ${node_ip}:${TRAEFIK_HTTP_NODEPORT} check"$'\n'
+  https_backend_servers+="    server worker${index} ${node_ip}:${TRAEFIK_HTTPS_NODEPORT} check"$'\n'
   index=$((index + 1))
 done
 
-if [ -z "${backend_servers}" ]; then
+if [ -z "${http_backend_servers}" ]; then
   echo "No Kubernetes nodes discovered for HAProxy backend" >&2
   exit 1
 fi
 
-export ALB_DOMAIN HAPROXY_BACKEND_SERVERS="${backend_servers%$'\n'}"
-envsubst '${ALB_DOMAIN} ${HAPROXY_BACKEND_SERVERS}' \
+export \
+  ALB_DOMAIN \
+  HAPROXY_HTTP_BACKEND_SERVERS="${http_backend_servers%$'\n'}" \
+  HAPROXY_HTTPS_BACKEND_SERVERS="${https_backend_servers%$'\n'}"
+envsubst '${ALB_DOMAIN} ${HAPROXY_HTTP_BACKEND_SERVERS} ${HAPROXY_HTTPS_BACKEND_SERVERS}' \
   < "${SCRIPT_DIR}/haproxy.cfg.tpl" \
   > "${SCRIPT_DIR}/${HAPROXY_CONFIG}"
 
 echo "Wrote ${SCRIPT_DIR}/${HAPROXY_CONFIG}"
-printf '%s\n' "${backend_servers%$'\n'}"
+printf '%s\n' "${http_backend_servers%$'\n'}"
+printf '%s\n' "${https_backend_servers%$'\n'}"
