@@ -9,7 +9,6 @@ defaults
     timeout server 50s
 
 frontend http_front
-    # Public DNS should point to the HAProxy VPS public IP.
     bind *:80
     mode http
     option httplog
@@ -20,7 +19,5 @@ backend traefik_nodes_http
     mode http
     balance roundrobin
     option httpchk
-    http-check send meth GET uri / ver HTTP/1.1 hdr Host benhvien.teamdevops.shop
-    # Run ./discover-traefik-nodes.sh to replace this fallback with live
-    # Kubernetes worker IPs that are running Traefik pods.
-    server no_nodes 127.0.0.1:9 disabled
+    http-check send meth GET uri / ver HTTP/1.1 hdr Host ${ALB_DOMAIN}
+${HAPROXY_BACKEND_SERVERS}

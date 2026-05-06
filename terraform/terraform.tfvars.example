@@ -1,15 +1,15 @@
-region            = "ap-southeast-1"
+region            = "us-east-1"
 project_name      = "hospital"
-ami_id            = "ami-xxxxxxxxxxxxxxxxx"
-instance_type     = "t2.micro"
-key_name          = "your-keypair-name"
+ami_id            = "ami-091138d0f0d41ff90"
+instance_type     = "t3.small"
+key_name          = "kien"
 security_group_id = "sg-xxxxxxxxxxxxxxxxx"
 vpc_id            = "vpc-xxxxxxxxxxxxxxxxx"
 
-ansible_inventory_path = "/home/ubuntu/ansible-web/hosts.ini"
+ansible_inventory_path = "/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/hosts.ini"
 
 nodes = {
   node1 = {
-    instance_type = "t2.micro"
+    instance_type = "t3.small"
   }
 }

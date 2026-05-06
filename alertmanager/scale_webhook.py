@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent
 REPO_DIR = BASE_DIR.parent
 TERRAFORM_DIR = REPO_DIR / "terraform"
 ADD_NODE_SCRIPT = TERRAFORM_DIR / "add-node.sh"
-WORKFLOW_SCRIPT = REPO_DIR / "provision-ec2-and-run-ansible.sh"
+WORKFLOW_SCRIPT = REPO_DIR / "ansible-web" / "provision-ec2-and-run-ansible.sh"
 DEFAULT_ENV_FILE = BASE_DIR / "scale-webhook.env"
 
 
@@ -38,9 +38,9 @@ COOLDOWN_SECONDS = int(os.environ.get("SCALE_WEBHOOK_COOLDOWN_SECONDS", "1800"))
 SSH_USER = os.environ.get("SCALE_SSH_USER", "ubuntu")
 SSH_SERVER_IP = os.environ.get("SCALE_SERVER_IP", "")
 SSH_TARGET = os.environ.get("SCALE_SSH_TARGET", f"{SSH_USER}@{SSH_SERVER_IP}" if SSH_SERVER_IP else "")
-SSH_KEY = os.environ.get("SCALE_SSH_KEY", str(BASE_DIR / "kien.pem"))
+SSH_KEY = os.environ.get("SCALE_SSH_KEY", str(REPO_DIR / "ansible-web" / "kien.pem"))
 SSH_PORT = os.environ.get("SCALE_SSH_PORT", "22")
-REMOTE_WORKFLOW_DIR = os.environ.get("SCALE_WORKFLOW_DIR", "/home/ubuntu")
+REMOTE_WORKFLOW_DIR = os.environ.get("SCALE_WORKFLOW_DIR", str(REPO_DIR / "ansible-web"))
 REMOTE_WORKFLOW_SCRIPT = os.environ.get(
     "SCALE_WORKFLOW_SCRIPT",
     "provision-ec2-and-run-ansible.sh",
@@ -211,7 +211,6 @@ class ScaleWebhookHandler(BaseHTTPRequestHandler):
             self.send_json(202, {"status": "already_running"})
             return
 
-        mark_scaled()
         thread = threading.Thread(target=run_scale_background, daemon=True)
         thread.start()
         self.send_json(202, {"status": "scale_started"})

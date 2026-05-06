@@ -11,6 +11,7 @@ ENV_FILE="${ANSIBLE_DIR}/.env"
 INVENTORY_FILE="${ANSIBLE_DIR}/hosts.ini"
 PLAYBOOK_FILE="${ANSIBLE_DIR}/join_k8s.yml"
 KEY_FILE="${ANSIBLE_DIR}/kien.pem"
+ALB_RELOAD_SCRIPT="${ROOT_DIR}/k8s-traefik-lb-demo/alb/reload-haproxy.sh"
 
 if [[ ! -f "${TFVARS_FILE}" ]]; then
   echo "Missing ${TFVARS_FILE}"
@@ -31,6 +32,8 @@ fi
 
 if [[ ! -f "${KEY_FILE}" ]]; then
   echo "Missing ${KEY_FILE}"
+  echo "Copy your AWS EC2 private key to ansible-web/kien.pem, then run:"
+  echo "chmod 400 ansible-web/kien.pem"
   exit 1
 fi
 
@@ -51,6 +54,14 @@ echo "==> Running Ansible"
 cd "${ANSIBLE_DIR}"
 chmod 400 "${KEY_FILE}" || true
 ansible-playbook -i "${INVENTORY_FILE}" "${PLAYBOOK_FILE}"
+
+if [[ -f "${ALB_RELOAD_SCRIPT}" ]] && command -v kubectl >/dev/null 2>&1 && command -v docker >/dev/null 2>&1; then
+  echo "==> Reloading HAProxy backend list"
+  bash "${ALB_RELOAD_SCRIPT}"
+else
+  echo "==> Skipping HAProxy reload"
+  echo "Run manually if HAProxy is on another server: bash k8s-traefik-lb-demo/alb/reload-haproxy.sh"
+fi
 
 echo "==> Done"
 echo "Check node status on the control plane with: kubectl get nodes -o wide"

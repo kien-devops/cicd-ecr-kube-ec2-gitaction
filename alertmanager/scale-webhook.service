@@ -5,20 +5,20 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ubuntu/alertmanager
-ExecStart=/usr/bin/python3 /home/ubuntu/alertmanager/scale_webhook.py
+WorkingDirectory=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/alertmanager
+ExecStart=/usr/bin/python3 /home/ubuntu/cicd-ecr-kube-ec2-gitaction/alertmanager/scale_webhook.py
 Restart=always
 RestartSec=5
-EnvironmentFile=-/home/ubuntu/alertmanager/scale-webhook.env
+EnvironmentFile=-/home/ubuntu/cicd-ecr-kube-ec2-gitaction/alertmanager/scale-webhook.env
 Environment=SCALE_WEBHOOK_HOST=0.0.0.0
 Environment=SCALE_WEBHOOK_PORT=5001
 Environment=SCALE_WEBHOOK_COOLDOWN_SECONDS=1800
-# Put server-specific values in alertmanager/scale-webhook.env.
+# Put server-specific values in /home/ubuntu/cicd-ecr-kube-ec2-gitaction/alertmanager/scale-webhook.env.
 # SCALE_SERVER_IP=YOUR_TERRAFORM_SERVER_IP
 # SCALE_SSH_USER=ubuntu
-# SCALE_SSH_KEY=/home/ubuntu/alertmanager/kien.pem
-# SCALE_WORKFLOW_DIR=/home/ubuntu
-# SCALE_WORKFLOW_SCRIPT=ansible-web/provision-ec2-and-run-ansible.sh
+# SCALE_SSH_KEY=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/kien.pem
+# SCALE_WORKFLOW_DIR=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web
+# SCALE_WORKFLOW_SCRIPT=provision-ec2-and-run-ansible.sh
 
 [Install]
 WantedBy=multi-user.target

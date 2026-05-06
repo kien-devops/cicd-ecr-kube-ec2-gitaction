@@ -18,7 +18,7 @@ spec:
         - name: ecr-secret
       containers:
         - name: be-v1
-          image: ${ECR_REGISTRY}/ecr-be:${IMAGE_TAG}
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:${IMAGE_TAG}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

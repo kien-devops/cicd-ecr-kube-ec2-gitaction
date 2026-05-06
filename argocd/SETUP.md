@@ -117,10 +117,10 @@ kubectl get application hospital-traefik-app -n argocd
 Check application workloads:
 
 ```bash
-kubectl get pods -n default
+kubectl get pods -n hospital
 kubectl get pods -n traefik
 kubectl get svc -n traefik
-kubectl get gateway,httproute -n default
+kubectl get gateway,httproute -n hospital
 ```
 
 Open the hospital app:

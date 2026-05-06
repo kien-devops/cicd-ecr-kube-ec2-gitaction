@@ -29,10 +29,7 @@ project.assets.json
 # Others
 .env
 
-#appsetting
-# appsettings.Development.json
-
-Hospital_API/publish/appsettings.json
+# App settings — managed in root .gitignore
 
 
 # Migrations/

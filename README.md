@@ -124,7 +124,7 @@ k8s-traefik-lb-demo/k8s/
   00-namespace.yaml            Traefik and hospital namespaces
   01-traefik-rbac.yaml         Traefik RBAC
   02-traefik-gatewayclass.yaml GatewayClass
-  03-traefik-deployment.yaml   Traefik controller
+  03-traefik-deployment.yaml   Traefik controller DaemonSet
   04-traefik-service.yaml      Traefik NodePort service
   05-fe-deployment.yaml        Frontend deployment
   06-fe-service.yaml           Frontend service
@@ -160,8 +160,8 @@ The workflow runs on push to the configured branch and performs these steps:
 Images pushed:
 
 ```text
-<ECR_REGISTRY>/ecr-fe:<github-sha>
-<ECR_REGISTRY>/ecr-be:<github-sha>
+<registry-from-k8s-image>/ecr-fe:<github-sha>
+<registry-from-k8s-image>/ecr-be:<github-sha>
 ```
 
 Required GitHub Secrets:
@@ -171,7 +171,6 @@ EC2_SSH_PRIVATE_KEY
 EC2_HOST
 GIT_USERNAME
 GIT_PASSWORD
-ECR_REGISTRY
 ```
 
 ## CD: ArgoCD GitOps
@@ -224,19 +223,18 @@ User
 The frontend and backend deployments use ECR images:
 
 ```text
-${ECR_REGISTRY}/ecr-fe:${IMAGE_TAG}
-${ECR_REGISTRY}/ecr-be:${IMAGE_TAG}
+606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-fe:${IMAGE_TAG}
+606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:${IMAGE_TAG}
 ```
 
-Render the variable-based image fields before applying the manifests directly:
+The workflow replaces `${IMAGE_TAG}` with the pushed commit SHA.
 
 ```bash
-ECR_REGISTRY=<aws-account-id>.dkr.ecr.<aws-region>.amazonaws.com \
-IMAGE_TAG=<github-sha> \
-./scripts/render-k8s-manifests.sh
+cd k8s-traefik-lb-demo
+bash k8s/apply.sh
 ```
 
-Because the images are private, Kubernetes needs this image pull secret in the `default` namespace:
+Because the images are private, Kubernetes needs this image pull secret in the `hospital` namespace:
 
 ```text
 ecr-secret
@@ -367,13 +365,8 @@ https://<server-public-ip>:8080
 Create the ECR pull secret:
 
 ```bash
-kubectl delete secret ecr-secret -n default --ignore-not-found
-ECR_PASSWORD=$(aws ecr get-login-password --region ap-southeast-1)
-kubectl create secret docker-registry ecr-secret \
-  --docker-server=<aws-account-id>.dkr.ecr.<aws-region>.amazonaws.com \
-  --docker-username=AWS \
-  --docker-password="$ECR_PASSWORD" \
-  -n default
+cd k8s-traefik-lb-demo
+bash k8s/create-ecr-secret.sh
 ```
 
 Apply the ArgoCD Application:
@@ -443,7 +436,7 @@ http://<server-private-ip-or-internal-host>:5001/scale-ec2
 Check app pods:
 
 ```bash
-kubectl get pods -n default
+kubectl get pods -n hospital
 ```
 
 Check Traefik:
@@ -456,7 +449,7 @@ kubectl get svc -n traefik
 Check Gateway resources:
 
 ```bash
-kubectl get gateway,httproute -n default
+kubectl get gateway,httproute -n hospital
 ```
 
 Check ArgoCD Application:

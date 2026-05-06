@@ -35,11 +35,29 @@ benhvien.teamdevops.shop -> <haproxy-public-ip>
 ## Files
 
 - `docker-compose.yml`: runs the HAProxy container and publishes ports `80` and `443`.
-- `haproxy.cfg`: defines the HAProxy frontend and backend worker nodes.
+- `.env.example`: environment variables for real domain, NodePort, and Kubernetes discovery.
+- `haproxy.cfg.tpl`: HAProxy template.
+- `discover-traefik-nodes.sh`: discovers Kubernetes nodes running Traefik and writes `haproxy.cfg`.
+- `reload-haproxy.sh`: discovers nodes, rewrites `haproxy.cfg`, and restarts the HAProxy container if it is running.
+- `haproxy.cfg`: generated HAProxy config mounted by Docker Compose.
 
 ## HAProxy Configuration
 
-The current HTTP backend forwards traffic to both Kubernetes workers through the Traefik HTTP NodePort:
+Copy the env file and set the real values:
+
+```bash
+cd ~/k8s-traefik-lb-demo/alb
+cp .env.example .env
+nano .env
+```
+
+Generate `haproxy.cfg` from Kubernetes discovery:
+
+```bash
+bash ./discover-traefik-nodes.sh
+```
+
+The script discovers Running Traefik pods, maps them to Kubernetes node InternalIP values, and writes backend lines like this:
 
 ```cfg
 backend traefik_nodes_http
@@ -47,17 +65,23 @@ backend traefik_nodes_http
     balance roundrobin
     option httpchk
     http-check send meth GET uri / ver HTTP/1.1 hdr Host benhvien.teamdevops.shop
-    server worker1 <worker-1-private-ip>:30080 check
-    server worker2 <worker-2-private-ip>:30080 check
+    server worker1 10.0.1.11:30080 check
+    server worker2 10.0.1.12:30080 check
 ```
 
-Use the worker private IPs when the HAProxy VPS is in the same private network as the cluster.
+Use `KUBE_NODE_ADDRESS_TYPE=InternalIP` when the HAProxy VPS is in the same private network as the cluster. Use `ExternalIP` only when HAProxy reaches workers through public addresses.
 
-If the worker IPs change, update only these lines:
+If the worker IPs change, rerun discovery and reload HAProxy:
 
-```cfg
-server worker1 <WORKER_1_PRIVATE_IP>:30080 check
-server worker2 <WORKER_2_PRIVATE_IP>:30080 check
+```bash
+bash ./discover-traefik-nodes.sh
+docker restart haproxy-alb
+```
+
+Or run both steps with:
+
+```bash
+bash ./reload-haproxy.sh
 ```
 
 ## Traefik Requirement
@@ -102,27 +126,17 @@ This step is only needed when the HAProxy VPS is used to run `kubectl`. If you r
 
 This setup uses `externalTrafficPolicy: Local` for Traefik. With this mode, every worker used by HAProxy should run a local Traefik pod.
 
-The Traefik deployment uses pod anti-affinity so the two Traefik replicas are scheduled on different nodes:
+The Traefik controller runs as a DaemonSet, so each schedulable worker gets a local Traefik pod. When a new EC2 worker joins the cluster, Kubernetes schedules Traefik there automatically and `reload-haproxy.sh` can add that node to HAProxy.
 
-```yaml
-affinity:
-  podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchLabels:
-            app: traefik
-        topologyKey: kubernetes.io/hostname
-```
-
-Apply the Traefik deployment:
+Apply the Traefik DaemonSet:
 
 ```bash
 kubectl apply -f ~/k8s-traefik-lb-demo/k8s/03-traefik-deployment.yaml
-kubectl rollout restart deployment/traefik -n traefik
-kubectl rollout status deployment/traefik -n traefik
+kubectl rollout restart daemonset/traefik -n traefik
+kubectl rollout status daemonset/traefik -n traefik
 ```
 
-Check that the Traefik pods are running on different workers:
+Check that Traefik pods are running across workers:
 
 ```bash
 kubectl get pods -n traefik -o wide
@@ -133,6 +147,7 @@ Expected placement:
 ```text
 traefik-xxxxx   1/1   Running   ...   <worker-1-node-name>
 traefik-yyyyy   1/1   Running   ...   <worker-2-node-name>
+traefik-zzzzz   1/1   Running   ...   <worker-3-node-name>
 ```
 
 ## Run HAProxy
@@ -141,6 +156,7 @@ Start HAProxy:
 
 ```bash
 cd ~/k8s-traefik-lb-demo/alb
+bash ./discover-traefik-nodes.sh
 docker-compose up -d
 ```
 

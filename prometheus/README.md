@@ -3,6 +3,8 @@
 Run Prometheus with the configuration from this folder.
 The Node Exporter job uses EC2 service discovery and scrapes running instances tagged `Monitoring=enabled`.
 
+Set the real Alertmanager target directly in `prometheus.yml` before starting Prometheus.
+
 ## Model
 
 ```mermaid

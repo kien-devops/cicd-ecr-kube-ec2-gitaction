@@ -1,13 +1,12 @@
-# Run Traefik with Kubernetes Gateway API and Traefik CRD providers enabled.
+# Run Traefik on every node with Kubernetes Gateway API and Traefik CRD providers enabled.
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: traefik
   namespace: traefik
   labels:
     app: traefik
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: traefik
@@ -17,13 +16,6 @@ spec:
         app: traefik
     spec:
       serviceAccountName: traefik
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app: traefik
-              topologyKey: kubernetes.io/hostname
       containers:
         - name: traefik
           image: traefik:v3.1

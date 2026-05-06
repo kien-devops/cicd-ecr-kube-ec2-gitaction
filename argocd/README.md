@@ -27,7 +27,7 @@ Kubernetes Cluster
    |     +-- application controller
    |
    +-- namespace: traefik
-   |     +-- Traefik Deployment
+   |     +-- Traefik DaemonSet
    |     +-- Traefik Service NodePort 30080/30443
    |
    +-- namespace: hospital

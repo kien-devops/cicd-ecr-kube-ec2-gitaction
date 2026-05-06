@@ -40,19 +40,19 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 Edit `terraform/terraform.tfvars`:
 
 ```hcl
-region            = "ap-southeast-1"
+region            = "us-east-1"
 project_name      = "hospital"
-ami_id            = "ami-xxxxxxxxxxxxxxxxx"
-instance_type     = "t2.micro"
-key_name          = "your-keypair-name"
+ami_id            = "ami-091138d0f0d41ff90"
+instance_type     = "t3.small"
+key_name          = "kien"
 security_group_id = "sg-xxxxxxxxxxxxxxxxx"
 vpc_id            = "vpc-xxxxxxxxxxxxxxxxx"
 
-ansible_inventory_path = "/home/ubuntu/ansible-web/hosts.ini"
+ansible_inventory_path = "/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/hosts.ini"
 
 nodes = {
   node1 = {
-    instance_type = "t2.micro"
+    instance_type = "t3.small"
   }
 }
 ```
@@ -86,7 +86,7 @@ bash terraform/add-node.sh
 Add a node with a custom name and instance type:
 
 ```bash
-bash terraform/add-node.sh node2 t2.micro
+bash terraform/add-node.sh node2 t3.small
 ```
 
 The script updates `terraform.tfvars`, runs `terraform fmt`, `terraform init`, and `terraform apply -auto-approve`.
@@ -112,7 +112,7 @@ The script updates `terraform.tfvars`, runs `terraform fmt`, `terraform init`, a
 Terraform writes the Ansible inventory to the path configured by:
 
 ```hcl
-ansible_inventory_path = "/home/ubuntu/ansible-web/hosts.ini"
+ansible_inventory_path = "/home/ubuntu/cicd-ecr-kube-ec2-gitaction/ansible-web/hosts.ini"
 ```
 
 The generated inventory is used by Ansible:
@@ -130,3 +130,5 @@ The `ec2-workers` module owns:
 - EC2 worker instances.
 - Common tags, including `Monitoring=enabled` for Prometheus EC2 service discovery.
 - The generated Ansible inventory file.
+
+Terraform does not create or attach IAM roles to worker EC2 instances. ECR access is handled outside this module: control/monitor servers can have roles attached manually, and Kubernetes pulls private images through `ecr-secret`.

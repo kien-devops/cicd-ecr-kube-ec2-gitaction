@@ -2,6 +2,13 @@
 
 Run Alertmanager with the configuration from this folder.
 
+Copy `.env.example` to `.env` and set the real scale webhook URL before rendering `alertmanager.yml`:
+
+```bash
+cp alertmanager/.env.example alertmanager/.env
+bash alertmanager/render-config.sh
+```
+
 ## Model
 
 ```mermaid

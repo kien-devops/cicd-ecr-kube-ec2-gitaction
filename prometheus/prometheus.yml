@@ -9,7 +9,7 @@ alerting:
   alertmanagers:
   - static_configs:
     - targets:
-      - "<alertmanager-ip>:9093"
+      - "172.31.27.193:9093"
 
 scrape_configs:
 - job_name: "node_exporter"

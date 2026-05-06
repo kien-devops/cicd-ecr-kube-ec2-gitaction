@@ -31,7 +31,7 @@ resource "local_file" "ansible_inventory" {
     ["[web]"],
     [
       for name, instance in aws_instance.node :
-      "${name} ansible_host=${instance.public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.ansible_private_key_file} ansible_python_interpreter=${var.ansible_python_interpreter}"
+      "${name} ansible_host=${instance.private_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.ansible_private_key_file} ansible_python_interpreter=${var.ansible_python_interpreter}"
     ]
   ))
 }
