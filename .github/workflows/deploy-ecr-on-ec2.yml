@@ -3,7 +3,7 @@ name: Build and Push on EC2
 on:
   push:
     branches:
-      - devops1
+      - devops
 
 permissions:
   contents: write
