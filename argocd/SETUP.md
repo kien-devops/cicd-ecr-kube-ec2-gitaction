@@ -66,7 +66,7 @@ If either CRD is missing, install the required Gateway API and Traefik CRDs befo
 
 ## 6. Create ECR Image Pull Secret
 
-The frontend and backend deployments use private ECR images and expect this secret in the `default` namespace:
+The frontend and backend deployments use private ECR images and expect this secret in the `hospital` namespace:
 
 ```text
 ecr-secret
@@ -75,7 +75,7 @@ ecr-secret
 Create or recreate it:
 
 ```bash
-kubectl delete secret ecr-secret -n default --ignore-not-found
+kubectl delete secret ecr-secret -n hospital --ignore-not-found
 ```
 
 ```bash
@@ -84,16 +84,16 @@ ECR_PASSWORD=$(aws ecr get-login-password --region ap-southeast-1)
 
 ```bash
 kubectl create secret docker-registry ecr-secret \
-  --docker-server=545587707922.dkr.ecr.ap-southeast-1.amazonaws.com \
+  --docker-server=<ecr-registry> \
   --docker-username=AWS \
   --docker-password="$ECR_PASSWORD" \
-  -n default
+  -n hospital
 ```
 
 Verify:
 
 ```bash
-kubectl get secret ecr-secret -n default
+kubectl get secret ecr-secret -n hospital
 ```
 
 ## 7. Create ArgoCD Application
@@ -117,10 +117,10 @@ kubectl get application hospital-traefik-app -n argocd
 Check application workloads:
 
 ```bash
-kubectl get pods -n default
+kubectl get pods -n hospital
 kubectl get pods -n traefik
 kubectl get svc -n traefik
-kubectl get gateway,httproute -n default
+kubectl get gateway,httproute -n hospital
 ```
 
 Open the hospital app:

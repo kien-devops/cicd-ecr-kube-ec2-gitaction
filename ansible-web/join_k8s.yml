@@ -1,8 +1,8 @@
 ---
 - name: Prepare Kubernetes worker and join cluster
   hosts: web
-  gather_facts: no
-  become: yes
+  gather_facts: false
+  become: true
 
   pre_tasks:
     - name: Wait for SSH to become available
@@ -30,10 +30,22 @@
         path: /etc/kubernetes/kubelet.conf
       register: kubelet_conf
 
+    - name: Copy Kubernetes common setup script
+      copy:
+        src: "{{ playbook_dir }}/common.sh"
+        dest: /tmp/k8s-common.sh
+        mode: "0755"
+      when: not kubelet_conf.stat.exists
+
+    - name: Normalize common setup script line endings
+      replace:
+        path: /tmp/k8s-common.sh
+        regexp: "\r"
+        replace: ""
+      when: not kubelet_conf.stat.exists
+
     - name: Run Kubernetes common setup script with bash
-      script: "{{ playbook_dir }}/common.sh"
-      args:
-        executable: bash
+      command: bash /tmp/k8s-common.sh
       when: not kubelet_conf.stat.exists
 
     - name: Join Kubernetes cluster

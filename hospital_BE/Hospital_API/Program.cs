@@ -316,6 +316,7 @@ app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.MapControllers();
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 
 // Thêm sau app.UseRouting()
 // app.UseStaticFiles(); // Cho phép truy cập static files // Moved to top

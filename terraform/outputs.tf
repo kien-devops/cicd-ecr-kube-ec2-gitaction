@@ -1,24 +1,15 @@
 output "public_ips" {
-  value = {
-    for name, instance in aws_instance.node :
-    name => instance.public_ip
-  }
+  value = module.ec2_workers.public_ips
 }
 
 output "private_ips" {
-  value = {
-    for name, instance in aws_instance.node :
-    name => instance.private_ip
-  }
+  value = module.ec2_workers.private_ips
 }
 
 output "instance_ids" {
-  value = {
-    for name, instance in aws_instance.node :
-    name => instance.id
-  }
+  value = module.ec2_workers.instance_ids
 }
 
 output "instance_names" {
-  value = keys(var.nodes)
+  value = module.ec2_workers.instance_names
 }

@@ -13,7 +13,8 @@ BASE_DIR = Path(__file__).resolve().parent
 REPO_DIR = BASE_DIR.parent
 TERRAFORM_DIR = REPO_DIR / "terraform"
 ADD_NODE_SCRIPT = TERRAFORM_DIR / "add-node.sh"
-WORKFLOW_SCRIPT = REPO_DIR / "provision-ec2-and-run-ansible.sh"
+REMOVE_NODE_SCRIPT = TERRAFORM_DIR / "remove-node.sh"
+WORKFLOW_SCRIPT = REPO_DIR / "ansible-web" / "provision-ec2-and-run-ansible.sh"
 DEFAULT_ENV_FILE = BASE_DIR / "scale-webhook.env"
 
 
@@ -35,12 +36,14 @@ load_env_file(Path(os.environ.get("SCALE_WEBHOOK_ENV_FILE", str(DEFAULT_ENV_FILE
 HOST = os.environ.get("SCALE_WEBHOOK_HOST", "127.0.0.1")
 PORT = int(os.environ.get("SCALE_WEBHOOK_PORT", "5001"))
 COOLDOWN_SECONDS = int(os.environ.get("SCALE_WEBHOOK_COOLDOWN_SECONDS", "1800"))
+MIN_TERRAFORM_NODES = int(os.environ.get("SCALE_WEBHOOK_MIN_TERRAFORM_NODES", "1"))
 SSH_USER = os.environ.get("SCALE_SSH_USER", "ubuntu")
 SSH_SERVER_IP = os.environ.get("SCALE_SERVER_IP", "")
 SSH_TARGET = os.environ.get("SCALE_SSH_TARGET", f"{SSH_USER}@{SSH_SERVER_IP}" if SSH_SERVER_IP else "")
-SSH_KEY = os.environ.get("SCALE_SSH_KEY", str(BASE_DIR / "kien.pem"))
+SSH_KEY = os.environ.get("SCALE_SSH_KEY", str(REPO_DIR / "ansible-web" / "kien.pem"))
 SSH_PORT = os.environ.get("SCALE_SSH_PORT", "22")
-REMOTE_WORKFLOW_DIR = os.environ.get("SCALE_WORKFLOW_DIR", "/home/ubuntu")
+REMOTE_REPO_DIR = os.environ.get("SCALE_REPO_DIR", str(REPO_DIR))
+REMOTE_WORKFLOW_DIR = os.environ.get("SCALE_WORKFLOW_DIR", str(REPO_DIR / "ansible-web"))
 REMOTE_WORKFLOW_SCRIPT = os.environ.get(
     "SCALE_WORKFLOW_SCRIPT",
     "provision-ec2-and-run-ansible.sh",
@@ -49,16 +52,24 @@ SSH_COMMAND = os.environ.get(
     "SCALE_SSH_COMMAND",
     f"cd {shlex.quote(REMOTE_WORKFLOW_DIR)} && bash ./{shlex.quote(REMOTE_WORKFLOW_SCRIPT)}",
 )
+SCALE_DOWN_SSH_COMMAND = os.environ.get(
+    "SCALE_DOWN_SSH_COMMAND",
+    (
+        f"cd {shlex.quote(REMOTE_REPO_DIR.rstrip('/') + '/terraform')} "
+        f"&& MIN_TERRAFORM_NODES={MIN_TERRAFORM_NODES} bash ./remove-node.sh"
+    ),
+)
 
 STATE_DIR = Path(os.environ.get("SCALE_WEBHOOK_STATE_DIR", str(BASE_DIR)))
-LAST_SCALE_FILE = STATE_DIR / ".last_scale_ec2"
+LAST_SCALE_UP_FILE = STATE_DIR / ".last_scale_up_ec2"
+LAST_SCALE_DOWN_FILE = STATE_DIR / ".last_scale_down_ec2"
 LOCK_FILE = STATE_DIR / ".scale_ec2.lock"
 LOG_FILE = STATE_DIR / "scale_webhook.log"
 
 
-def should_scale(payload):
+def scale_action(payload):
     if payload.get("status") != "firing":
-        return False
+        return None
 
     for alert in payload.get("alerts", []):
         labels = alert.get("labels", {})
@@ -67,14 +78,25 @@ def should_scale(payload):
             and labels.get("alertname") == "HighAverageNodeCpuUsage"
             and labels.get("action") == "scale-ec2"
         ):
-            return True
+            return "up"
 
-    return False
+        if (
+            alert.get("status") == "firing"
+            and labels.get("alertname") == "LowAverageNodeCpuUsage"
+            and labels.get("action") == "scale-down-ec2"
+        ):
+            return "down"
+
+    return None
 
 
-def cooldown_remaining():
+def last_scale_file(action):
+    return LAST_SCALE_DOWN_FILE if action == "down" else LAST_SCALE_UP_FILE
+
+
+def cooldown_remaining(action):
     try:
-        last_scale = float(LAST_SCALE_FILE.read_text(encoding="utf-8").strip())
+        last_scale = float(last_scale_file(action).read_text(encoding="utf-8").strip())
     except (FileNotFoundError, ValueError):
         return 0
 
@@ -82,9 +104,9 @@ def cooldown_remaining():
     return max(0, int(COOLDOWN_SECONDS - elapsed))
 
 
-def mark_scaled():
+def mark_scaled(action):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    LAST_SCALE_FILE.write_text(str(time.time()), encoding="utf-8")
+    last_scale_file(action).write_text(str(time.time()), encoding="utf-8")
 
 
 def log_event(message):
@@ -114,8 +136,9 @@ def release_lock():
         pass
 
 
-def run_scale():
+def run_scale(action):
     if SSH_TARGET:
+        ssh_command = SCALE_DOWN_SSH_COMMAND if action == "down" else SSH_COMMAND
         command = [
             "ssh",
             "-p",
@@ -129,7 +152,7 @@ def run_scale():
         if SSH_KEY:
             command.extend(["-i", SSH_KEY])
 
-        command.extend([SSH_TARGET, SSH_COMMAND])
+        command.extend([SSH_TARGET, ssh_command])
 
         result = subprocess.run(
             command,
@@ -144,19 +167,31 @@ def run_scale():
 
         return result.stdout
 
-    if WORKFLOW_SCRIPT.exists():
-        command = ["bash", str(WORKFLOW_SCRIPT)]
-        cwd = str(REPO_DIR)
-    else:
-        if not ADD_NODE_SCRIPT.exists():
-            raise FileNotFoundError(f"Missing scale script: {ADD_NODE_SCRIPT}")
+    if action == "down":
+        if not REMOVE_NODE_SCRIPT.exists():
+            raise FileNotFoundError(f"Missing scale-down script: {REMOVE_NODE_SCRIPT}")
 
-        command = ["bash", str(ADD_NODE_SCRIPT)]
+        command = ["bash", str(REMOVE_NODE_SCRIPT)]
         cwd = str(TERRAFORM_DIR)
+        env = os.environ.copy()
+        env.setdefault("MIN_TERRAFORM_NODES", str(MIN_TERRAFORM_NODES))
+    else:
+        env = None
+
+        if WORKFLOW_SCRIPT.exists():
+            command = ["bash", str(WORKFLOW_SCRIPT)]
+            cwd = str(REPO_DIR)
+        else:
+            if not ADD_NODE_SCRIPT.exists():
+                raise FileNotFoundError(f"Missing scale script: {ADD_NODE_SCRIPT}")
+
+            command = ["bash", str(ADD_NODE_SCRIPT)]
+            cwd = str(TERRAFORM_DIR)
 
     result = subprocess.run(
         command,
         cwd=cwd,
+        env=env,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -169,16 +204,16 @@ def run_scale():
     return result.stdout
 
 
-def run_scale_background():
+def run_scale_background(action):
     try:
-        log_event("Starting EC2 scale command")
-        output = run_scale()
-        mark_scaled()
-        log_event("EC2 scale command completed")
+        log_event(f"Starting EC2 scale-{action} command")
+        output = run_scale(action)
+        mark_scaled(action)
+        log_event(f"EC2 scale-{action} command completed")
         if output:
             log_event(output[-4000:])
     except Exception as exc:
-        log_event(f"EC2 scale command failed: {exc}")
+        log_event(f"EC2 scale-{action} command failed: {exc}")
     finally:
         release_lock()
 
@@ -198,11 +233,12 @@ class ScaleWebhookHandler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": "invalid json"})
             return
 
-        if not should_scale(payload):
+        action = scale_action(payload)
+        if not action:
             self.send_json(202, {"status": "ignored"})
             return
 
-        remaining = cooldown_remaining()
+        remaining = cooldown_remaining(action)
         if remaining > 0:
             self.send_json(202, {"status": "cooldown", "remaining_seconds": remaining})
             return
@@ -211,10 +247,9 @@ class ScaleWebhookHandler(BaseHTTPRequestHandler):
             self.send_json(202, {"status": "already_running"})
             return
 
-        mark_scaled()
-        thread = threading.Thread(target=run_scale_background, daemon=True)
+        thread = threading.Thread(target=run_scale_background, args=(action,), daemon=True)
         thread.start()
-        self.send_json(202, {"status": "scale_started"})
+        self.send_json(202, {"status": "scale_started", "action": action})
 
     def log_message(self, fmt, *args):
         print("%s - %s" % (self.address_string(), fmt % args), flush=True)

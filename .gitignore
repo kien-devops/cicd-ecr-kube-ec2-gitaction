@@ -12,6 +12,8 @@ Thumbs.db
 node_modules/
 dist/
 build/
+
+# Real environment files. Keep only sample env files in git.
 .env
 .env.*
 !.env.example
@@ -40,6 +42,11 @@ TestResults/
 *.user
 *.suo
 
+# .NET App settings — only example files are tracked
+**/appsettings.json
+**/appsettings.Development.json
+!**/appsettings.example.json
+
 # Terraform
 **/.terraform/
 *.tfstate
@@ -64,3 +71,6 @@ override.tf.json
 *.pfx
 id_rsa
 id_rsa.pub
+
+# .NET publish output with secrets
+hospital_BE/Hospital_API/publish/appsettings.json

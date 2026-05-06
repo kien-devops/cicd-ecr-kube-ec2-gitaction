@@ -31,5 +31,5 @@ receivers:
   - name: default-receiver
   - name: scale-ec2-webhook
     webhook_configs:
-      - url: "http://172.31.27.193:5001/scale-ec2"
+      - url: "${SCALE_WEBHOOK_URL}"
         send_resolved: false

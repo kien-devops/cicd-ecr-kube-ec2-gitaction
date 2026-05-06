@@ -4,6 +4,7 @@ set -euxo pipefail
 KUBERNETES_VERSION="v1.30"
 CRIO_VERSION="v1.30"
 KUBERNETES_INSTALL_VERSION="1.30.0-1.1"
+NODE_EXPORTER_VERSION="1.8.2"
 
 # Disable swap now and on reboot
 sudo swapoff -a
@@ -13,7 +14,7 @@ sudo sed -i.bak '/\sswap\s/s/^\(.*\)$/#\1/g' /etc/fstab || true
 
 # Basic packages
 sudo apt-get update -y
-sudo apt-get install -y apt-transport-https ca-certificates curl gpg software-properties-common jq cron
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg software-properties-common jq cron tar
 sudo systemctl enable cron --now || true
 
 # Keep swap disabled after reboot
@@ -87,5 +88,45 @@ sudo systemctl daemon-reload
 sudo systemctl enable kubelet
 sudo systemctl restart kubelet
 
+if ! id node_exporter >/dev/null 2>&1; then
+  sudo useradd --no-create-home --shell /usr/sbin/nologin node_exporter
+fi
+
+if [[ ! -x /usr/local/bin/node_exporter ]]; then
+  NODE_EXPORTER_ARCH="linux-amd64"
+  NODE_EXPORTER_TARBALL="node_exporter-${NODE_EXPORTER_VERSION}.${NODE_EXPORTER_ARCH}.tar.gz"
+  NODE_EXPORTER_URL="https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/${NODE_EXPORTER_TARBALL}"
+  TMP_DIR="$(mktemp -d)"
+
+  curl -fsSL "${NODE_EXPORTER_URL}" -o "${TMP_DIR}/${NODE_EXPORTER_TARBALL}"
+  tar -xzf "${TMP_DIR}/${NODE_EXPORTER_TARBALL}" -C "${TMP_DIR}"
+  sudo install -o node_exporter -g node_exporter -m 0755 \
+    "${TMP_DIR}/node_exporter-${NODE_EXPORTER_VERSION}.${NODE_EXPORTER_ARCH}/node_exporter" \
+    /usr/local/bin/node_exporter
+  rm -rf "${TMP_DIR}"
+fi
+
+cat <<EOF | sudo tee /etc/systemd/system/node_exporter.service
+[Unit]
+Description=Prometheus Node Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable node_exporter --now
+sudo systemctl restart node_exporter
+
 echo "Kubernetes components installed successfully"
+echo "Node Exporter installed successfully on port 9100"
 echo "Detected node IP: ${NODE_IP}"

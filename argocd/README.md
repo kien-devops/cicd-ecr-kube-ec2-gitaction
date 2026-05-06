@@ -27,10 +27,10 @@ Kubernetes Cluster
    |     +-- application controller
    |
    +-- namespace: traefik
-   |     +-- Traefik Deployment
+   |     +-- Traefik DaemonSet
    |     +-- Traefik Service NodePort 30080/30443
    |
-   +-- namespace: default
+   +-- namespace: hospital
          +-- Frontend Deployment/Service
          +-- Backend Deployment/Service
          +-- Gateway web-gateway-v1
@@ -63,7 +63,7 @@ Kubernetes reconciles Deployments, Services, Gateway, and Routes
 - Target revision: `HEAD`
 - Manifest path: `k8s-traefik-lb-demo/k8s`
 - Destination cluster: `https://kubernetes.default.svc`
-- Destination namespace: `default`
+- Destination namespace: `hospital`
 
 ## Files
 

@@ -5,16 +5,21 @@ on:
     branches:
       - devops
 
+permissions:
+  contents: write
+
 env:
   REPO_DIR: /home/ubuntu/cicd-ecr-kube-ec2-gitaction
   REPO_URL: https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git
-  REGISTRY: ${{ secrets.ECR_REGISTRY }}
-  AWS_REGION: ap-southeast-1
-  IMAGE_TAG: v1
+  REGISTRY: 606030503959.dkr.ecr.us-east-1.amazonaws.com
+  AWS_REGION: us-east-1
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Skip if commit was created by CI bot to avoid infinite loop
+    if: "!contains(github.event.head_commit.message, 'ci: update image tag')"
 
     steps:
       - name: Configure SSH key
@@ -23,6 +28,8 @@ jobs:
           mkdir -p ~/.ssh
           install -m 600 /dev/null ~/.ssh/ec2_key
           printf '%s' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
+          # Add EC2 host key to known_hosts to prevent MitM attacks
+          printf '%s\n' "${{ secrets.EC2_HOST_KEY }}" >> ~/.ssh/known_hosts
 
       - name: Build and push images on EC2
         shell: bash
@@ -36,7 +43,6 @@ jobs:
           GIT_AUTH=$(printf '%s' "${GIT_USERNAME}:${GIT_PASSWORD}" | base64 | tr -d '\n')
 
           ssh -i ~/.ssh/ec2_key \
-            -o StrictHostKeyChecking=no \
             "ubuntu@${EC2_HOST}" \
             "GIT_AUTH='${GIT_AUTH}' REPO_DIR='${REPO_DIR}' REPO_URL='${REPO_URL}' REGISTRY='${REGISTRY}' AWS_REGION='${AWS_REGION}' IMAGE_TAG='${IMAGE_TAG}' /bin/bash -s" <<'EOF'
           set -euo pipefail
@@ -46,20 +52,41 @@ jobs:
 
           if [ ! -d "$REPO_DIR/.git" ]; then
               rm -rf "$REPO_DIR"
-              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b main "$REPO_URL" "$REPO_DIR"
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" clone -b ${{ github.ref_name }} "$REPO_URL" "$REPO_DIR"
           else
               cd "$REPO_DIR"
               git remote set-url origin "$REPO_URL"
-              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin main
-              git reset --hard origin/main
+              git -c http.extraHeader="Authorization: Basic $GIT_AUTH" fetch origin ${{ github.ref_name }}
+              git reset --hard origin/${{ github.ref_name }}
           fi
 
           cd "$REPO_DIR"
           aws ecr get-login-password --region "$AWS_REGION" | sudo docker login --username AWS --password-stdin "$REGISTRY"
           sudo docker build -t "ecr-fe:$IMAGE_TAG" -f hospital_FE/Dockerfile hospital_FE
-          sudo docker build -t "ecr-be:$IMAGE_TAG" -f hopital_BE/Hospital_API/Dockerfile hopital_BE/Hospital_API
+          sudo docker build -t "ecr-be:$IMAGE_TAG" -f hospital_BE/Hospital_API/Dockerfile hospital_BE/Hospital_API
           sudo docker tag "ecr-fe:$IMAGE_TAG" "$REGISTRY/ecr-fe:$IMAGE_TAG"
           sudo docker tag "ecr-be:$IMAGE_TAG" "$REGISTRY/ecr-be:$IMAGE_TAG"
           sudo docker push "$REGISTRY/ecr-fe:$IMAGE_TAG"
           sudo docker push "$REGISTRY/ecr-be:$IMAGE_TAG"
           EOF
+
+      - name: Checkout repo to update manifests
+        uses: actions/checkout@v4
+        with:
+          ref: devops
+
+      - name: Update image tag in k8s manifests
+        run: |
+          sed -i "s|image: .*ecr-fe:.*|image: ${{ env.REGISTRY }}/ecr-fe:${{ github.sha }}|g" \
+            k8s-traefik-lb-demo/k8s/05-fe-deployment.yaml
+          sed -i "s|image: .*ecr-be:.*|image: ${{ env.REGISTRY }}/ecr-be:${{ github.sha }}|g" \
+            k8s-traefik-lb-demo/k8s/07-be-deployment.yaml
+
+      - name: Commit and push updated manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s-traefik-lb-demo/k8s/05-fe-deployment.yaml
+          git add k8s-traefik-lb-demo/k8s/07-be-deployment.yaml
+          git commit -m "ci: update image tag to ${{ github.sha }}"
+          git push origin devops
