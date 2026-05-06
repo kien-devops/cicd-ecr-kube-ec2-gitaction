@@ -1,47 +1,79 @@
-# Prometheus
+# 📊 Prometheus Monitoring Server
 
-Run Prometheus with the configuration from this folder.
-The Node Exporter job uses EC2 service discovery and scrapes running instances tagged `Monitoring=enabled`.
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 
-Set the real Alertmanager target directly in `prometheus.yml` before starting Prometheus.
+This directory contains the Prometheus server configuration and alert rules (`alert_rules.yml`) used to monitor the EC2 worker nodes. 
 
-## Model
+---
+
+## 🏗 Architecture Model
 
 ```mermaid
 flowchart LR
-    EXPORTER[Node Exporter<br/>:9100] -->|metrics| PROM[Prometheus<br/>:9090]
-    PROM -->|load rules| RULES[alert_rules.yml]
-    PROM -->|send alerts| ALERT[Alertmanager<br/>:9093]
+    subgraph Data Collection
+        EXPORTER1[Node Exporter 1] -->|Scrape :9100| PROM[Prometheus<br/>:9090]
+        EXPORTER2[Node Exporter N] -->|Scrape :9100| PROM
+    end
+
+    PROM -->|Evaluate Rules| RULES[alert_rules.yml]
+    
+    RULES -->|If triggered| ALERT[Alertmanager<br/>:9093]
+    
+    subgraph Service Discovery
+        AWS[AWS EC2 API] -.->|Discover nodes tagged Monitoring=enabled| PROM
+    end
 ```
 
-`alert_rules.yml` contains two EC2 scaling alerts:
+---
 
-- `HighAverageNodeCpuUsage`: average CPU above 50% for 2 minutes, action `scale-ec2`.
-- `LowAverageNodeCpuUsage`: average CPU below 50% for 5 minutes, action `scale-down-ec2`.
+## 📡 EC2 Service Discovery (`ec2_sd_configs`)
 
-## Run With Docker
+Prometheus does **not** use static target lists. Instead, it dynamically discovers nodes using the AWS EC2 API.
+Nodes provisioned by Terraform automatically get the tag `Monitoring=enabled`. Prometheus queries AWS to find these nodes and scrapes their `node_exporter` metrics on port `9100`.
 
-Create the Docker network if it does not already exist:
+---
 
-```bash
-docker network create demo_network
+## 🚨 Alerting Rules (`alert_rules.yml`)
+
+Prometheus evaluates auto-scaling rules and forwards alerts to Alertmanager:
+
+1. **HighAverageNodeCpuUsage**: 
+   - Condition: Cluster average CPU > 50% for 2 minutes.
+   - Action payload: `action=scale-ec2`
+2. **LowAverageNodeCpuUsage**: 
+   - Condition: Cluster average CPU < 50% for 5 minutes.
+   - Action payload: `action=scale-down-ec2`
+
+---
+
+## ⚙️ Setup and Configuration
+
+Before starting Prometheus, ensure the Alertmanager target inside `prometheus.yml` points to the correct IP.
+
+```yaml
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - "<ALERTMANAGER_IP>:9093"
 ```
 
-Run Prometheus:
+---
+
+## 🐳 Running Prometheus via Docker
+
+Ensure AWS credentials with EC2 describe permissions are available (via environment or IAM instance profile), then run:
 
 ```bash
+docker network create demo_network || true
+
 docker run -d \
   --name prometheus \
   --network demo_network \
   -p 9090:9090 \
-  -v "<path-to-repo>/prometheus:/etc/prometheus:ro" \
+  -e AWS_REGION=us-east-1 \
+  -v "$(pwd):/etc/prometheus:ro" \
   prom/prometheus:latest
 ```
 
-Replace `<path-to-repo>` with the absolute path to this repository on the server.
-
-Open Prometheus:
-
-```text
-http://<server-ip>:9090
-```
+Access UI: `http://<server-ip>:9090`

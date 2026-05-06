@@ -1,91 +1,65 @@
-# ArgoCD GitOps Deployment
+# 🐙 ArgoCD GitOps Deployment
 
-This folder documents the ArgoCD setup used to deploy the hospital application and Traefik Gateway stack from GitHub into the Kubernetes cluster.
+![ArgoCD](https://img.shields.io/badge/ArgoCD-ef7b4d?style=for-the-badge&logo=argo&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 
-## Model
+This folder contains the ArgoCD application manifests and documentation for deploying the hospital web application and Traefik Gateway stack via GitOps.
 
-```text
-Developer
-   |
-   | git push
-   v
-GitHub Repository
-https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction
-   |
-   | ArgoCD watches path
-   v
-ArgoCD Application
-hospital-traefik-app
-   |
-   | sync
-   v
-Kubernetes Cluster
-   |
-   +-- namespace: argocd
-   |     +-- ArgoCD server
-   |     +-- repo server
-   |     +-- application controller
-   |
-   +-- namespace: traefik
-   |     +-- Traefik DaemonSet
-   |     +-- Traefik Service NodePort 30080/30443
-   |
-   +-- namespace: hospital
-         +-- Frontend Deployment/Service
-         +-- Backend Deployment/Service
-         +-- Gateway web-gateway-v1
-         +-- HTTPRoute web-route-v1
-         +-- Traefik Middleware resources
+---
+
+## 🏗 Architecture Model
+
+```mermaid
+flowchart TD
+    GH[GitHub Repository] -->|ArgoCD polls/watches| ArgoApp[ArgoCD Application]
+    ArgoApp -->|Auto Sync| K8s[Kubernetes Cluster]
+    
+    subgraph K8s [Kubernetes Environment]
+        NS1[Namespace: argocd]
+        NS2[Namespace: traefik]
+        NS3[Namespace: hospital]
+        
+        NS1 -.-> NS2
+        NS1 -.-> NS3
+    end
 ```
 
-## Sync Flow
+### 🔄 Sync Flow
 
-```text
-Git manifest changes
-        |
-        v
-ArgoCD detects OutOfSync
-        |
-        v
-ArgoCD applies manifests from k8s-traefik-lb-demo/k8s
-        |
-        v
-Kubernetes reconciles Deployments, Services, Gateway, and Routes
-```
+1. **Commit:** GitHub Actions updates the image tag in the k8s manifests and pushes to the repository.
+2. **Detect:** ArgoCD detects an `OutOfSync` state.
+3. **Sync:** ArgoCD automatically applies the new manifests.
+4. **Reconcile:** Kubernetes pulls the new ECR image (using IAM Instance Profiles) and performs a rolling update of the pods.
 
-## Demo
+---
 
-![ArgoCD running demo](images/demo.png)
+## 📂 Project Files
 
-## Application Source
+- `hospital-traefik-app.yaml`: The root ArgoCD `Application` Custom Resource Definition (CRD).
+- `SETUP.md`: Step-by-step instructions for installing ArgoCD on a fresh cluster.
 
-- Repository: `https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git`
-- Target revision: `HEAD`
-- Manifest path: `k8s-traefik-lb-demo/k8s`
-- Destination cluster: `https://kubernetes.default.svc`
-- Destination namespace: `hospital`
+### Application Source Config
 
-## Files
+| Setting | Value |
+|---|---|
+| **Repository** | `https://github.com/kien-devops/cicd-ecr-kube-ec2-gitaction.git` |
+| **Target Revision** | `devops` |
+| **Path** | `k8s-traefik-lb-demo/k8s` |
+| **Destination** | `https://kubernetes.default.svc` (in-cluster) |
+| **Namespace** | `hospital` |
+| **Auto-Sync** | Enabled (`prune: true`, `selfHeal: true`) |
 
-- `hospital-traefik-app.yaml`: ArgoCD `Application` manifest for this project.
-- `SETUP.md`: Server-side installation and setup commands.
+---
 
-## Runtime Access
+## 🚀 Quick Access
 
-ArgoCD UI through port-forward:
+To access the ArgoCD Dashboard locally, port-forward the service:
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443 --address 0.0.0.0
 ```
+Then visit: `https://<server-ip>:8080` (Accept the self-signed certificate warning).
 
-Open:
-
-```text
-https://<server-public-ip>:8080
-```
-
-Hospital app through Traefik NodePort:
-
-```text
-http://<server-public-ip>:30080
-```
+To retrieve the initial admin password:
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
