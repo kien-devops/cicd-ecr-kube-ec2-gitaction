@@ -1,12 +1,18 @@
-# Hướng dẫn Cài đặt và Cấu hình Nginx với HTTPS và Domain
+# Nginx Deployment Guide with HTTPS and Custom Domain
 
-## 1. Cài đặt Docker và Docker Compose
+This guide provides step-by-step instructions for deploying the application using Docker Compose, Nginx Proxy Manager (NPM), and configuring HTTPS with Let's Encrypt.
 
-Đảm bảo Docker và Docker Compose đã được cài đặt trên server.
+---
 
-## 2. Cấu hình Docker Compose
+## 1. Install Docker and Docker Compose
 
-Tạo file `docker-compose.yml`:
+Ensure that Docker and Docker Compose are installed on your server.
+
+---
+
+## 2. Docker Compose Configuration
+
+Create a `docker-compose.yml` file:
 
 ```yaml
 version: '3.8'
@@ -40,15 +46,17 @@ networks:
     driver: bridge
 ```
 
-## 3. Cấu hình Nginx cho Frontend
+---
 
-1. Tạo thư mục và file cấu hình:
+## 3. Nginx Configuration for Frontend
+
+1. Create the configuration directory and file:
 ```bash
 sudo mkdir -p /var/www/nginx-config
 sudo nano /var/www/nginx-config/nginx.conf
 ```
 
-2. Thêm nội dung vào `nginx.conf`:
+2. Add the following content to `nginx.conf`:
 ```nginx
 server {
     listen 80 default_server;
@@ -110,32 +118,34 @@ server {
 sudo chmod 644 /var/www/nginx-config/nginx.conf
 ```
 
-## 4. Cấu hình Nginx Proxy Manager
+---
 
-1. Truy cập Nginx Proxy Manager:
-   - URL: http://your-server-ip:81
+## 4. Nginx Proxy Manager Configuration
+
+1. Access Nginx Proxy Manager:
+   - URL: `http://your-server-ip:81`
    - Default login:
-     - Email: admin@example.com
-     - Password: changeme
+     - Email: `admin@example.com`
+     - Password: `changeme`
 
-2. Cấu hình cho Frontend (demoproject.software):
+2. Configure the Frontend (`demoproject.software`):
    - Add new Proxy Host
-   - Domain Names: demoproject.software
-   - Scheme: http
-   - Forward Hostname/IP: frontend-server
-   - Forward Port: 80
+   - Domain Names: `demoproject.software`
+   - Scheme: `http`
+   - Forward Hostname/IP: `frontend-server`
+   - Forward Port: `80`
    - SSL Tab:
      - Request new SSL Certificate
      - Force SSL
      - HTTP/2 Support
      - Agree to Let's Encrypt Terms
 
-3. Cấu hình cho Backend API (api.demoproject.software):
+3. Configure the Backend API (`api.demoproject.software`):
    - Add new Proxy Host
-   - Domain Names: api.demoproject.software
-   - Scheme: http
-   - Forward Hostname/IP: your-server-ip
-   - Forward Port: 8080 (hoặc port backend của bạn)
+   - Domain Names: `api.demoproject.software`
+   - Scheme: `http`
+   - Forward Hostname/IP: `your-server-ip`
+   - Forward Port: `8080` (or your backend port)
    - SSL Tab:
      - Request new SSL Certificate
      - Force SSL
@@ -151,14 +161,16 @@ sudo chmod 644 /var/www/nginx-config/nginx.conf
        Access-Control-Allow-Credentials: true
        ```
 
+---
+
 ## 5. Deploy Frontend
 
-1. Build React app:
+1. Build the React app:
 ```bash
 npm run build
 ```
 
-2. Copy build files:
+2. Copy the build files:
 ```bash
 sudo mkdir -p /var/www/hospital-react-app
 sudo cp -r build/* /var/www/hospital-react-app/
@@ -170,39 +182,42 @@ sudo chown -R www-data:www-data /var/www/hospital-react-app
 sudo chmod -R 755 /var/www/hospital-react-app
 ```
 
-## 6. Khởi động Services
+---
+
+## 6. Start Services
 
 ```bash
 docker-compose up -d
 ```
 
-## 7. Kiểm tra DNS
+---
 
-Đảm bảo DNS records đã được cấu hình đúng:
-- A record cho demoproject.software trỏ đến IP server
-- A record cho api.demoproject.software trỏ đến IP server
+## 7. DNS Verification
 
-## 8. Kiểm tra hoạt động
+Ensure your DNS records are configured correctly:
+- `A` record for `demoproject.software` pointing to your server IP.
+- `A` record for `api.demoproject.software` pointing to your server IP.
 
-1. Frontend: https://demoproject.software
-2. Backend API: https://api.demoproject.software
-3. Swagger UI: https://api.demoproject.software/swagger
+---
 
-## Xử lý sự cố
+## 8. Verify Deployment
 
-1. Nếu nội dung index.html bị matching sai:
-   - Kiểm tra nginx.conf đã được cấu hình đúng
-   - Restart frontend container
-   ```bash
-   docker-compose restart frontend-server
-   ```
+1. Frontend: `https://demoproject.software`
+2. Backend API: `https://api.demoproject.software`
+3. Swagger UI: `https://api.demoproject.software/swagger`
 
-2. Nếu SSL không hoạt động:
-   - Kiểm tra DNS propagation
-   - Đảm bảo ports 80 và 443 đã mở
-   - Kiểm tra logs của Nginx Proxy Manager
+---
 
-3. Nếu API không hoạt động:
-   - Kiểm tra backend service đang chạy
-   - Kiểm tra port forwarding
-   - Kiểm tra CORS configuration 
+## Troubleshooting
+
+1. **If `index.html` content matching fails:**
+   - Verify that `nginx.conf` is configured correctly.
+   - Restart the frontend container:
+     ```bash
+     docker-compose restart frontend-server
+     ```
+
+2. **If SSL is not working:**
+   - Check the Nginx Proxy Manager logs.
+   - Ensure ports `80` and `443` are open in your server's firewall.
+   - Verify that your DNS records have fully propagated.
