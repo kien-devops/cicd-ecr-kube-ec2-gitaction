@@ -80,7 +80,7 @@ flowchart LR
     Traefik -->|/api| BE
 
     K8s -->|metrics| Prometheus
-    Prometheus -->|CPU > 50%| Alertmanager
+    Prometheus -->|CPU > 70%| Alertmanager
     Alertmanager -->|webhook| Webhook
     Webhook -->|trigger| Terraform
     Terraform -->|create| NewNode
@@ -115,7 +115,7 @@ Triggered on `git push` to the `devops` branch (`.github/workflows/deploy-ecr-on
 We implemented a custom auto-scaling solution using Prometheus and Terraform, bypassing standard cloud provider ASGs to maintain granular control:
 
 1. **Scraping**: Prometheus scrapes `node_exporter` metrics from all Kubernetes nodes.
-2. **Alerting**: The `HighAverageNodeCpuUsage` rule fires when cluster CPU > 50% for 2 minutes.
+2. **Alerting**: The `HighAverageNodeCpuUsage` rule fires when cluster CPU > 70% for 2 minutes (scale-up). `LowAverageNodeCpuUsage` fires when CPU < 30% for 5 minutes (scale-down). Thresholds differ to prevent flapping.
 3. **Webhook**: Alertmanager forwards the alert to a custom Python Webhook (`scale_webhook.py`).
 4. **Provisioning**: The webhook triggers `provision-ec2-and-run-ansible.sh`.
 5. **Infrastructure**: Terraform provisions a new EC2 instance (`add-node.sh`).

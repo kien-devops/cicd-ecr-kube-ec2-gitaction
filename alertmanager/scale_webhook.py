@@ -36,7 +36,7 @@ load_env_file(Path(os.environ.get("SCALE_WEBHOOK_ENV_FILE", str(DEFAULT_ENV_FILE
 HOST = os.environ.get("SCALE_WEBHOOK_HOST", "127.0.0.1")
 PORT = int(os.environ.get("SCALE_WEBHOOK_PORT", "5001"))
 COOLDOWN_SECONDS = int(os.environ.get("SCALE_WEBHOOK_COOLDOWN_SECONDS", "1800"))
-MIN_TERRAFORM_NODES = int(os.environ.get("SCALE_WEBHOOK_MIN_TERRAFORM_NODES", "1"))
+MIN_TERRAFORM_NODES = int(os.environ.get("SCALE_WEBHOOK_MIN_TERRAFORM_NODES", "0"))
 SSH_USER = os.environ.get("SCALE_SSH_USER", "ubuntu")
 SSH_SERVER_IP = os.environ.get("SCALE_SERVER_IP", "")
 SSH_TARGET = os.environ.get("SCALE_SSH_TARGET", f"{SSH_USER}@{SSH_SERVER_IP}" if SSH_SERVER_IP else "")

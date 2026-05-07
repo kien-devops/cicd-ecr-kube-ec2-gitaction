@@ -37,11 +37,11 @@ Nodes provisioned by Terraform automatically get the tag `Monitoring=enabled`. P
 
 Prometheus evaluates auto-scaling rules and forwards alerts to Alertmanager:
 
-1. **HighAverageNodeCpuUsage**: 
-   - Condition: Cluster average CPU > 50% for 2 minutes.
+1. **HighAverageNodeCpuUsage**:
+   - Condition: Cluster average CPU > 70% for 2 minutes.
    - Action payload: `action=scale-ec2`
-2. **LowAverageNodeCpuUsage**: 
-   - Condition: Cluster average CPU < 50% for 5 minutes.
+2. **LowAverageNodeCpuUsage**:
+   - Condition: Cluster average CPU < 30% for 5 minutes.
    - Action payload: `action=scale-down-ec2`
 
 ---

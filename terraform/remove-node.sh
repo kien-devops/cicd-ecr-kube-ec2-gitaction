@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 TFVARS="terraform.tfvars"
 node_name="${1:-}"
-MIN_TERRAFORM_NODES="${MIN_TERRAFORM_NODES:-1}"
+MIN_TERRAFORM_NODES="${MIN_TERRAFORM_NODES:-0}"
 
 if [[ ! -f "$TFVARS" ]]; then
   echo "Missing $TFVARS"
@@ -21,10 +21,6 @@ current_node_count="$(
   grep -cE '^[[:space:]]*node[0-9]+[[:space:]]*=' "$TFVARS" || true
 )"
 
-if (( current_node_count <= MIN_TERRAFORM_NODES )); then
-  echo "Keeping ${current_node_count} Terraform node(s); minimum is ${MIN_TERRAFORM_NODES}."
-  exit 0
-fi
 
 if [[ -z "$node_name" ]]; then
   max_node_number="$(
