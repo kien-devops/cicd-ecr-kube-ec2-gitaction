@@ -42,10 +42,14 @@ flowchart TD
 | `00-namespace.yaml` | Creates `traefik` and `hospital` namespaces. |
 | `01-traefik-rbac.yaml` | ClusterRoles/Bindings for Traefik to read Gateways & Services. |
 | `02-traefik-gatewayclass.yaml` | Registers the Traefik `GatewayClass`. |
-| `03-traefik-deployment.yaml` | Deploys Traefik as a DaemonSet across worker nodes. |
+| `03-traefik-deployment.yaml` | Deploys Traefik as a DaemonSet; HTTP→HTTPS redirect and ACME TLS resolver enabled. |
 | `04-traefik-service.yaml` | Exposes Traefik globally via NodePort `30080` (HTTP) and `30443` (HTTPS). |
-| `05` to `08` | Frontend and Backend Deployments + ClusterIP Services. |
-| `09-gateway-routes.yaml` | Defines `Gateway`, Traefik `Middleware` (Rate Limits, Headers), and `HTTPRoute`. |
+| `05-fe-deployment.yaml` | Frontend Deployment — runs as **non-root** (`nginx` UID 101), `readOnlyRootFilesystem`, port **8000**. |
+| `06-fe-service.yaml` | Frontend ClusterIP Service — maps port 80 → container port 8000. |
+| `07-be-deployment.yaml` | Backend Deployment — runs as **non-root** (`app` UID 1654), `readOnlyRootFilesystem`, port 8080. |
+| `08-be-service.yaml` | Backend ClusterIP Service — maps port 80 → container port 8080. |
+| `09-gateway-routes.yaml` | Defines `Gateway`, Traefik `Middleware` (Rate Limits, Security Headers), and `HTTPRoute`. |
+| `10-network-policy.yaml` | **Zero Trust NetworkPolicy** — default-deny-ingress + allow Traefik→FE (8000) + allow FE/Traefik→BE (8080). |
 
 ---
 

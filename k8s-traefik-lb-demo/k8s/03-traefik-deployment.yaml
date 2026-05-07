@@ -22,12 +22,26 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --log.level=INFO
-            - --api.dashboard=true
+            # Disable dashboard in production or restrict to internal entrypoint only
+            - --api.dashboard=false
             - --ping=true
             - --providers.kubernetesgateway=true
             - --providers.kubernetescrd=true
+            # HTTP entrypoint: redirect all traffic to HTTPS
             - --entrypoints.web.address=:8000
+            - --entrypoints.web.http.redirections.entrypoint.to=websecure
+            - --entrypoints.web.http.redirections.entrypoint.scheme=https
+            - --entrypoints.web.http.redirections.entrypoint.permanent=true
+            # HTTPS entrypoint with TLS enabled
             - --entrypoints.websecure.address=:443
+            - --entrypoints.websecure.http.tls=true
+            # Let's Encrypt ACME TLS certificate resolver
+            - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+            - --certificatesresolvers.letsencrypt.acme.email=<ACME_EMAIL>
+            - --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
+          volumeMounts:
+            - name: acme-storage
+              mountPath: /data
           ports:
             - name: web
               containerPort: 8000
@@ -47,3 +61,6 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
+      volumes:
+        - name: acme-storage
+          emptyDir: {}

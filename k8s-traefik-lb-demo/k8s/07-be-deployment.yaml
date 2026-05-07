@@ -14,28 +14,39 @@ spec:
       labels:
         app: be-v1
     spec:
+      securityContext:
+        runAsNonRoot: true
+        # Must match the UID of USER app inside the BE Dockerfile (.NET aspnet image)
+        runAsUser: 1654
+        fsGroup: 2000
       containers:
-        - name: be-v1
-          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:5fc32b772034ee9f72e88ce012681083508953c7
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 8080
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 20
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
+      - name: be-v1
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:5fc32b772034ee9f72e88ce012681083508953c7
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

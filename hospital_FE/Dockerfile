@@ -10,8 +10,18 @@ RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
 
+# nginx user (UID 101) already exists in alpine image.
+# Grant it ownership of the directories nginx needs to write to at runtime.
+RUN touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid /var/cache/nginx /var/log/nginx /etc/nginx/conf.d
+
 WORKDIR /usr/share/nginx/html
 
 COPY --from=build /app/dist ./
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# Switch to non-root user nginx (UID 101).
+# Non-root users cannot bind to ports < 1024, so nginx config must listen on 8000.
+USER nginx
+
+EXPOSE 8000

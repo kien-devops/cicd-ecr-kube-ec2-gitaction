@@ -144,15 +144,24 @@ We implemented a custom auto-scaling solution using Prometheus and Terraform, by
 
 ## 🔒 Security & Authentication
 
-### 1. Secure ECR Pulls (No Image Pull Secrets)
+### 1. Kubernetes Zero Trust & Pod Security
+- **NetworkPolicies**: A default-deny ingress model enforces strict zero-trust networking. Traffic is explicitly allowed only via defined routes (Traefik → Frontend:8000, Traefik/Frontend → Backend:8080).
+- **Non-root Containers**: All Docker images (`FE`, `BE`) are built using unprivileged users (`nginx` UID 101, `app` UID 1654). Frontend runs on port 8000 to bypass `<1024` privileged port restrictions.
+- **Pod Security Context**: `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, and `capabilities.drop: [ALL]` are enforced at the Pod/Container level to prevent container escape and host compromise.
+
+### 2. Traffic Routing, TLS, and Gateways
+- **Ingress**: Uses the modern Kubernetes **Gateway API** (`GatewayClass: traefik`).
+- **HTTPS & TLS**: Both HAProxy (external) and Traefik (internal) are configured to force HTTP → HTTPS redirection. Traefik is set up with an ACME Let's Encrypt resolver.
+- **Security Middlewares**: Traefik enforces API rate limiting, prefix stripping (`/api`), and injects security headers (`X-Frame-Options`, `X-XSS-Protection`, etc.).
+
+### 3. Secure ECR Pulls (No Image Pull Secrets)
 We do **not** use static Kubernetes Secrets (`imagePullSecrets`) for pulling from ECR, eliminating the risk of token expiry (12-hour limit).
 Instead, Terraform assigns an **AWS IAM Instance Profile** to all worker nodes (`terraform/modules/ec2-workers/iam.tf`). This allows Kubelet/containerd to authenticate transparently via the EC2 metadata service.
 
-### 2. Traffic Routing & Gateways
-- **Ingress**: Uses the modern Kubernetes **Gateway API** (`GatewayClass: traefik`).
-- **Security Middlewares**: Traefik enforces API rate limiting, prefix stripping (`/api`), and security headers (`frameDeny: true`).
+### 4. Database Security
+- SQL connections force in-transit encryption (`Encrypt=True`, `TrustServerCertificate=False`).
 
-### 3. Repository Security
+### 5. Repository Security
 - `.gitignore` prevents committing sensitive credentials (`appsettings.json`, `.env`, `*.pem`).
 - CI/CD uses GitHub Secrets (`EC2_SSH_PRIVATE_KEY`, `GIT_PASSWORD`) injected safely at runtime.
 

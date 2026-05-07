@@ -14,6 +14,8 @@ frontend http_front
     mode http
     option httplog
     option forwardfor
+    # Redirect all HTTP traffic to HTTPS
+    http-request redirect scheme https code 301 if !{ ssl_fc }
     default_backend traefik_nodes_http
 
 frontend https_front

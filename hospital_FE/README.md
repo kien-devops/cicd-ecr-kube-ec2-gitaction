@@ -50,14 +50,16 @@ npm run dev
 
 ## 🐳 Docker Build
 
-The Dockerfile uses a **multi-stage build** for optimal image size:
+The Dockerfile uses a **multi-stage build** for optimal image size and security:
 
 1. **Stage 1 (Build):** `node:22-alpine` — installs dependencies and runs `vite build`.
-2. **Stage 2 (Runtime):** `nginx:1.27-alpine` — serves the static `dist/` output on port `80`.
+2. **Stage 2 (Runtime):** `nginx:1.27-alpine` — serves the static `dist/` output on port **8000** using the built-in `nginx` user (UID 101, non-root).
+
+A custom [`nginx.conf`](nginx.conf) is included to configure Nginx to listen on port 8000 (required because non-root users cannot bind to ports < 1024). It also adds security headers (`X-Frame-Options`, `X-XSS-Protection`, `X-Content-Type-Options`) and disables `server_tokens`.
 
 ```bash
 docker build -t hospital-fe .
-docker run -p 8080:80 hospital-fe
+docker run -p 5173:8000 hospital-fe
 ```
 
 ---

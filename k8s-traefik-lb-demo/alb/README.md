@@ -12,12 +12,14 @@ This directory contains a standalone HAProxy setup that acts as the external pub
 flowchart TD
     Client([🌍 External Client])
     
-    Client -->|http://benhvien.teamdevops.shop| DNS[DNS Resolution]
+    Client -->|https://benhvien.teamdevops.shop| DNS[DNS Resolution]
     DNS --> PublicIP[HAProxy Public IP :80 / :443]
     
     subgraph HAProxy Container
-        PublicIP --> Frontend[Frontend listeners]
-        Frontend --> Backend[Backend: traefik_nodes]
+        PublicIP --> Frontend80[Frontend :80]
+        Frontend80 -->|301 Redirect| Frontend443[Frontend :443]
+        PublicIP --> Frontend443
+        Frontend443 --> Backend[Backend: traefik_nodes]
     end
     
     subgraph Kubernetes Workers
