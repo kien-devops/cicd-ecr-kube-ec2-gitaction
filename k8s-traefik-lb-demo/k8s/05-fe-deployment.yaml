@@ -18,9 +18,15 @@ spec:
         - name: ecr-registry-secret
       securityContext:
         runAsNonRoot: true
-        # Must match the UID of USER nginx inside the FE Dockerfile (nginx:alpine image)
         runAsUser: 101
         fsGroup: 2000
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: fe-v1
           securityContext:
@@ -32,19 +38,23 @@ spec:
           image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-fe:60ee3817611ea08136919d0a25dcdbdfc84471a1
           imagePullPolicy: Always
           ports:
-            # nginx runs on 8000 (non-root users cannot bind ports < 1024)
             - containerPort: 8000
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /
-              # nginx is running on 8000 now
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /
-              # nginx is running on 8000 now
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 20

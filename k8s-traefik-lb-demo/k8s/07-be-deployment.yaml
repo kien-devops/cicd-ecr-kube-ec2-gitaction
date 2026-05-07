@@ -18,37 +18,36 @@ spec:
         - name: ecr-registry-secret
       securityContext:
         runAsNonRoot: true
-        # Must match the UID of USER app inside the BE Dockerfile (.NET aspnet image)
         runAsUser: 1654
         fsGroup: 2000
       containers:
-      - name: be-v1
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
-        image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:60ee3817611ea08136919d0a25dcdbdfc84471a1
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 20
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
+        - name: be-v1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:60ee3817611ea08136919d0a25dcdbdfc84471a1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
