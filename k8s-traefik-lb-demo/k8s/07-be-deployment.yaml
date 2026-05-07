@@ -41,6 +41,11 @@ spec:
               mountPath: /uploads
           securityContext:
             runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
 
       containers:
         - name: be-v1
