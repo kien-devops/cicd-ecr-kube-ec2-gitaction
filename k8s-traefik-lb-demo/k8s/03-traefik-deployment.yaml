@@ -27,26 +27,12 @@ spec:
             - --ping=true
             - --providers.kubernetesgateway=true
             - --providers.kubernetescrd=true
-            # HTTP entrypoint: redirect all traffic to HTTPS
+            # HTTP entrypoint: TLS is terminated by HAProxy, so no redirect needed here
             - --entrypoints.web.address=:8000
-            - --entrypoints.web.http.redirections.entrypoint.to=websecure
-            - --entrypoints.web.http.redirections.entrypoint.scheme=https
-            - --entrypoints.web.http.redirections.entrypoint.permanent=true
-            # HTTPS entrypoint with TLS enabled
-            - --entrypoints.websecure.address=:443
-            - --entrypoints.websecure.http.tls=true
-            # Let's Encrypt ACME TLS certificate resolver
-            - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
-            - --certificatesresolvers.letsencrypt.acme.email=<ACME_EMAIL>
-            - --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
-          volumeMounts:
-            - name: acme-storage
-              mountPath: /data
+            - --entrypoints.web.forwardedHeaders.insecure=true
           ports:
             - name: web
               containerPort: 8000
-            - name: websecure
-              containerPort: 443
             - name: traefik
               containerPort: 8080
           readinessProbe:
@@ -61,6 +47,3 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
-      volumes:
-        - name: acme-storage
-          emptyDir: {}
