@@ -56,7 +56,7 @@ spec:
               drop:
                 - ALL
 
-          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:f0da24015dbac056e9755c89ae855b8a8bc9cbd7
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:cdf4fd346ff27adb3eca961990f80de9ea1552b5
           imagePullPolicy: Always
 
           ports:
