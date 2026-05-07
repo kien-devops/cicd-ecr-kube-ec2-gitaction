@@ -29,7 +29,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-fe:f6625d26dbb548a1c9750308c74c8803e0189618
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-fe:60ee3817611ea08136919d0a25dcdbdfc84471a1
           imagePullPolicy: Always
           ports:
             # nginx runs on 8000 (non-root users cannot bind ports < 1024)
