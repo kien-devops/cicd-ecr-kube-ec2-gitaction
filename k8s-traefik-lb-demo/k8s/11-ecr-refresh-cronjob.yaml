@@ -1,0 +1,79 @@
+# CronJob to refresh ECR login secret every 10 hours.
+# The ECR token expires after 12 hours, so we refresh it every 10 hours to be safe.
+# The node running this CronJob must have an IAM Role with ecr:GetAuthorizationToken permission.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-registry-secret-refresh
+  namespace: hospital
+spec:
+  schedule: "0 */10 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ecr-secret-refresher
+          restartPolicy: OnFailure
+          containers:
+            - name: ecr-secret-refresher
+              # We use an image with both AWS CLI and kubectl installed
+              image: mikesir87/aws-cli:v2
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: AWS_REGION
+                  value: "us-east-1"
+                - name: ECR_REGISTRY
+                  value: "606030503959.dkr.ecr.us-east-1.amazonaws.com"
+                - name: SECRET_NAME
+                  value: "ecr-registry-secret"
+                - name: NAMESPACE
+                  value: "hospital"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                  chmod +x kubectl
+                  mv kubectl /usr/local/bin/
+                  
+                  TOKEN=$(aws ecr get-login-password --region "$AWS_REGION")
+                  kubectl create secret docker-registry "$SECRET_NAME" \
+                    --namespace="$NAMESPACE" \
+                    --docker-server="$ECR_REGISTRY" \
+                    --docker-username=AWS \
+                    --docker-password="$TOKEN" \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                  echo "ECR secret refreshed successfully."
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ecr-secret-refresher
+  namespace: hospital
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ecr-secret-refresher
+  namespace: hospital
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ecr-secret-refresher
+  namespace: hospital
+subjects:
+  - kind: ServiceAccount
+    name: ecr-secret-refresher
+    namespace: hospital
+roleRef:
+  kind: Role
+  name: ecr-secret-refresher
+  apiGroup: rbac.authorization.k8s.io

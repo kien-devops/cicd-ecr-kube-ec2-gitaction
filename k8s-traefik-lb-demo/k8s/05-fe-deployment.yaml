@@ -14,6 +14,8 @@ spec:
       labels:
         app: fe-v1
     spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
       securityContext:
         runAsNonRoot: true
         # Must match the UID of USER nginx inside the FE Dockerfile (nginx:alpine image)
