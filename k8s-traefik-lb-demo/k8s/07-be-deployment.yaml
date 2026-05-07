@@ -25,7 +25,7 @@ spec:
       - name: be-v1
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           capabilities:
             drop:
             - ALL
