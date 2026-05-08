@@ -1,85 +1,85 @@
-# 🏗️ Terraform Infrastructure (IaC)
+# Terraform Infrastructure
 
-![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
+This folder provisions EC2 worker nodes used by the Kubernetes cluster.
 
-This directory contains the Terraform configuration to provision EC2 worker nodes for the Kubernetes cluster, generate the Ansible inventory file dynamically, and configure IAM Roles for ECR image pulls.
+## Files
 
----
+| File | Purpose |
+|---|---|
+| `main.tf` | Root module that calls `modules/ec2-workers`. |
+| `variables.tf` | Root input variables. |
+| `outputs.tf` | Outputs such as worker IPs. |
+| `moved.tf` | Terraform state move declarations. |
+| `terraform.tfvars.example` | Example local variable file. |
+| `add-node.sh` | Adds a worker node. |
+| `remove-node.sh` | Removes a worker node. |
+| `modules/ec2-workers/` | EC2 worker module with instance and IAM config. |
 
-## 📂 Directory Structure
+## Worker Module
 
-```text
-terraform/
-  ├── main.tf                      # Root module calls
-  ├── variables.tf                 # Input variables definition
-  ├── outputs.tf                   # Useful outputs (IPs, Roles)
-  ├── terraform.tfvars.example     # Template for local configurations
-  ├── add-node.sh                  # Helper script to scale OUT
-  ├── remove-node.sh               # Helper script to scale IN
-  └── modules/
-      └── ec2-workers/
-          ├── main.tf              # EC2 instances & Ansible hosts.ini generation
-          ├── iam.tf               # IAM Role & Instance Profile for ECR pulls
-          ├── variables.tf
-          └── outputs.tf
-```
+`modules/ec2-workers` creates:
 
----
+- EC2 worker instances.
+- IAM role and instance profile.
+- Tags used by Prometheus service discovery, including `Monitoring=enabled`.
+- Ansible inventory file at the configured `ansible_inventory_path`.
 
-## 🔒 ECR Authentication (IAM Profiles)
+## Setup
 
-Unlike traditional setups that rely on short-lived `imagePullSecrets`, this infrastructure uses **AWS IAM Instance Profiles**. 
-
-Every EC2 worker node is automatically assigned the `hospital-worker-profile` IAM Profile. The Kubelet and containerd runtime seamlessly authenticate with ECR via the EC2 metadata endpoint.
-
-**Benefits:**
-- ❌ No Kubernetes Secrets required for Docker registries.
-- ❌ No 12-hour token expiration issues.
-- ✅ New nodes added via Terraform automatically inherit access.
-- ✅ Follows the principle of least privilege (only 4 specific `ecr:*` read actions are allowed).
-
----
-
-## 🚀 Usage Guide
-
-### 1. Initial Setup
-
-Copy the example variables file:
 ```bash
+cd terraform
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Update `terraform.tfvars` with your specific AWS resources (VPC, Subnets, AMI, Key Pair).
+Edit `terraform.tfvars` with your AWS values:
 
-### 2. Standard Terraform Workflow
+- Region
+- AMI ID
+- Instance type
+- Key pair name
+- VPC ID
+- Security group ID
+- Worker node map
+- Ansible inventory path
+
+## Standard Terraform Commands
 
 ```bash
 terraform init
 terraform fmt -recursive
+terraform validate
 terraform plan
 terraform apply
 ```
 
-### 3. Scaling Operations
+## Scale Out
 
-We provide bash wrappers to safely interact with Terraform for auto-scaling events.
-
-**Add a new worker node:**
 ```bash
+cd terraform
 bash add-node.sh
-# Or with specific name/type: bash add-node.sh node3 t3.medium
 ```
 
-**Remove the latest worker node:**
+Or pass a name and instance type if supported by the script:
+
 ```bash
-bash remove-node.sh
-# Or remove specific node: bash remove-node.sh node2
+bash add-node.sh node3 t3.medium
 ```
 
----
+## Scale In
 
-## ⚙️ Integrations
+```bash
+cd terraform
+bash remove-node.sh
+```
 
-1. **Ansible**: Terraform automatically generates the `/ansible-web/hosts.ini` inventory file containing the newly provisioned node IPs.
-2. **Prometheus**: Nodes are automatically tagged with `Monitoring=enabled`, which Prometheus uses for EC2 Service Discovery (`ec2_sd_configs`).
+Or remove a named node if supported by the script:
+
+```bash
+bash remove-node.sh node3
+```
+
+## Integration Points
+
+- `ansible-web/provision-ec2-and-run-ansible.sh` calls `add-node.sh`, then joins the new EC2 instance to Kubernetes.
+- `prometheus/prometheus.yml` discovers workers using EC2 service discovery.
+- `alertmanager/scale_webhook.py` calls scale scripts when CPU alerts fire.

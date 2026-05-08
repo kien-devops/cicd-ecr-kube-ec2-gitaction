@@ -1,70 +1,38 @@
-# 📊 Prometheus Monitoring Server
+# Prometheus Monitoring
 
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
+This folder contains Prometheus configuration and alert rules for EC2 worker monitoring and autoscaling signals.
 
-This directory contains the Prometheus server configuration and alert rules (`alert_rules.yml`) used to monitor the EC2 worker nodes. 
+## Files
 
----
+| File | Purpose |
+|---|---|
+| `prometheus.yml` | Prometheus scrape and alertmanager configuration. |
+| `alert_rules.yml` | CPU based scale-up and scale-down alert rules. |
 
-## 🏗 Architecture Model
+## Scrape Jobs
 
-```mermaid
-flowchart LR
-    subgraph Data Collection
-        EXPORTER1[Node Exporter 1] -->|Scrape :9100| PROM[Prometheus<br/>:9090]
-        EXPORTER2[Node Exporter N] -->|Scrape :9100| PROM
-    end
+| Job | Purpose |
+|---|---|
+| `node-exporter-monitor-host` | Static scrape for the monitoring host on `54.163.216.25:9100`. |
+| `node-exporter-ec2-workers` | AWS EC2 service discovery for worker nodes tagged `Monitoring=enabled`. |
 
-    PROM -->|Evaluate Rules| RULES[alert_rules.yml]
-    
-    RULES -->|If triggered| ALERT[Alertmanager<br/>:9093]
-    
-    subgraph Service Discovery
-        AWS[AWS EC2 API] -.->|Discover nodes tagged Monitoring=enabled| PROM
-    end
-```
+The EC2 worker job uses AWS EC2 metadata labels and scrapes node exporter on port `9100`.
 
----
+## Alerts
 
-## 📡 EC2 Service Discovery (`ec2_sd_configs`)
+| Alert | Condition | Duration | Action label |
+|---|---|---|---|
+| `HighAverageNodeCpuUsage` | Average worker CPU above 70% | 2 minutes | `scale-ec2` |
+| `LowAverageNodeCpuUsage` | Average worker CPU below 30% | 5 minutes | `scale-down-ec2` |
 
-Prometheus does **not** use static target lists. Instead, it dynamically discovers nodes using the AWS EC2 API.
-Nodes provisioned by Terraform automatically get the tag `Monitoring=enabled`. Prometheus queries AWS to find these nodes and scrapes their `node_exporter` metrics on port `9100`.
+Alertmanager receives these alerts and forwards them to the scale webhook.
 
----
+## Run Prometheus
 
-## 🚨 Alerting Rules (`alert_rules.yml`)
-
-Prometheus evaluates auto-scaling rules and forwards alerts to Alertmanager:
-
-1. **HighAverageNodeCpuUsage**:
-   - Condition: Cluster average CPU > 70% for 2 minutes.
-   - Action payload: `action=scale-ec2`
-2. **LowAverageNodeCpuUsage**:
-   - Condition: Cluster average CPU < 30% for 5 minutes.
-   - Action payload: `action=scale-down-ec2`
-
----
-
-## ⚙️ Setup and Configuration
-
-Before starting Prometheus, ensure the Alertmanager target inside `prometheus.yml` points to the correct IP.
-
-```yaml
-alerting:
-  alertmanagers:
-  - static_configs:
-    - targets:
-      - "<ALERTMANAGER_IP>:9093"
-```
-
----
-
-## 🐳 Running Prometheus via Docker
-
-Ensure AWS credentials with EC2 describe permissions are available (via environment or IAM instance profile), then run:
+The host needs AWS permission to describe EC2 instances, either through an instance profile or environment credentials.
 
 ```bash
+cd prometheus
 docker network create demo_network || true
 
 docker run -d \
@@ -76,4 +44,26 @@ docker run -d \
   prom/prometheus:latest
 ```
 
-Access UI: `http://<server-ip>:9090`
+Open:
+
+```text
+http://<server-ip>:9090
+```
+
+## Verify
+
+In the Prometheus UI:
+
+- Check `Status -> Targets`.
+- Confirm `node-exporter-ec2-workers` targets are `UP`.
+- Query:
+
+```promql
+up{job="node-exporter-ec2-workers"}
+```
+
+Check alert state:
+
+```promql
+ALERTS
+```

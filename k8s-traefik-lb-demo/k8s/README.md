@@ -1,137 +1,98 @@
-# 🚦 Kubernetes Traefik Gateway Stack
+# Kubernetes and Traefik Gateway Manifests
 
-![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
-![Traefik](https://img.shields.io/badge/Traefik-24A1C1?style=for-the-badge&logo=TraefikProxy&logoColor=white)
+This folder contains the Kubernetes runtime stack for the hospital application.
 
-This directory contains the Kubernetes manifests to deploy Traefik as a **Gateway API** controller alongside the hospital application workloads (Frontend and Backend).
+## Traffic Flow
 
----
-
-## 🏗 Traffic Flow Architecture
-
-```mermaid
-flowchart TD
-    HAProxy[HAProxy Edge LB terminates HTTPS]
-
-    HAProxy -->|HTTP to NodePort 30080| TraefikSvc[Traefik Service]
-
-    TraefikSvc --> Gateway[Gateway: web-gateway-v1]
-
-    Gateway --> Route[HTTPRoute: web-route-v1]
-
-    subgraph Middlewares
-        Route --> RateLimit[Rate Limit: 10 req/s]
-        RateLimit --> SecHeaders[Security Headers]
-    end
-
-    SecHeaders --> Condition{Path matching}
-
-    Condition -->|/api/*| BE[Backend Service: be-service-v1]
-    Condition -->|/*| FE[Frontend Service: fe-service-v1]
-
-    BE --> BEPods[Backend API Pods]
-    FE --> FEPods[Frontend React Pods]
+```text
+HAProxy HTTPS edge
+  -> HTTP to Traefik NodePort 30080
+  -> Gateway web-gateway-v1
+  -> HTTPRoute web-route-v1
+     - /api -> be-service-v1 -> backend pods on 8080
+     - /    -> fe-service-v1 -> frontend pods on 8000
 ```
 
----
-
-## ✅ Design Decision
-
-HTTPS is terminated at the HAProxy edge load balancer, not at Traefik.
-
-This means:
-
-- Traefik only listens on HTTP port `8000` (exposed as NodePort `30080`).
-- Traefik does not redirect HTTP to HTTPS.
-- Traefik trusts forwarded headers from HAProxy using `--entrypoints.web.forwardedHeaders.insecure=true`.
-- HAProxy sets `X-Forwarded-Proto: https`, `X-Forwarded-Port: 443`, and `X-Real-IP` so that backend services can detect the original protocol.
-
----
-
-## 📂 Manifests Breakdown
+## Files
 
 | File | Purpose |
 |---|---|
 | `00-namespace.yaml` | Creates `traefik` and `hospital` namespaces. |
-| `01-traefik-rbac.yaml` | ClusterRoles and bindings for Traefik to read Gateways and Services. |
-| `02-traefik-gatewayclass.yaml` | Registers the Traefik `GatewayClass`. |
-| `03-traefik-deployment.yaml` | Deploys Traefik as a DaemonSet. HTTP-only entrypoint on port `8000` with forwarded headers trusted. |
-| `04-traefik-service.yaml` | Exposes Traefik via NodePort `30080` (HTTP only). |
-| `05-fe-deployment.yaml` | Frontend Deployment — runs as non-root nginx UID 101, port 8000. |
-| `06-fe-service.yaml` | Frontend ClusterIP Service — maps port 80 to container port 8000. |
-| `07-be-deployment.yaml` | Backend Deployment — runs as non-root UID 1654, port 8080. |
-| `08-be-service.yaml` | Backend ClusterIP Service — maps port 80 to container port 8080. |
-| `09-gateway-routes.yaml` | Defines Gateway, Traefik Middlewares (rate limit, security headers, strip prefix), and HTTPRoute. |
-| `10-network-policy.yaml` | Zero Trust NetworkPolicy: default deny ingress, allow Traefik to FE port 8000, allow Traefik to BE port 8080. |
+| `01-traefik-rbac.yaml` | ServiceAccount, ClusterRole, and binding for Traefik. |
+| `02-traefik-gatewayclass.yaml` | Defines `GatewayClass` named `traefik`. |
+| `03-traefik-deployment.yaml` | Runs Traefik as a DaemonSet on port `8000`. |
+| `04-traefik-service.yaml` | Exposes Traefik through NodePort `30080`. |
+| `05-fe-deployment.yaml` | Frontend Deployment from ECR. |
+| `06-fe-service.yaml` | Frontend ClusterIP Service. |
+| `07-be-deployment.yaml` | Backend Deployment from ECR. Reads DB connection from `be-db-secret`. |
+| `08-be-service.yaml` | Backend ClusterIP Service. |
+| `09-gateway-routes.yaml` | Gateway, HTTPRoute, rate limit, and security headers. |
+| `10-network-policy.yaml` | Default-deny ingress plus allow rules for Traefik to FE/BE. |
+| `apply.sh` | Installs required CRDs and applies all manifests. |
 
----
+## Required Secrets
 
-## 🔒 ECR Authentication
+### ECR Pull Secret
 
-The FE and BE Deployments pull private images from Amazon ECR using `imagePullSecrets`:
+The deployments reference:
 
 ```yaml
 imagePullSecrets:
   - name: ecr-registry-secret
 ```
 
-Create the secret from the ECR login token:
+Create or refresh it:
 
 ```bash
 aws ecr get-login-password --region us-east-1 \
   | kubectl create secret docker-registry ecr-registry-secret \
     -n hospital \
-    --docker-server=<ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com \
+    --docker-server=606030503959.dkr.ecr.us-east-1.amazonaws.com \
     --docker-username=AWS \
-    --docker-password-stdin
+    --docker-password-stdin \
+    --dry-run=client -o yaml | kubectl apply -f -
 ```
 
----
+### Backend Database Secret
 
-## 🚀 Deployment
+The backend reads `ConnectionStrings__DefaultConnection` from `be-db-secret`:
 
-The provided shell script checks for and installs required CRDs (Gateway API `v1.3.0` and Traefik v3 CRDs) before applying manifests:
+```bash
+kubectl -n hospital create secret generic be-db-secret \
+  --from-literal=default-connection='Server=<DB_HOST>,1433;Database=hospital;User Id=sa;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True' \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Restart after changing it:
+
+```bash
+kubectl -n hospital rollout restart deployment/be-deployment-v1
+```
+
+## Manual Apply
 
 ```bash
 cd k8s-traefik-lb-demo
 bash k8s/apply.sh
 ```
 
-In the full GitOps flow, ArgoCD handles manifest synchronization automatically.
+In normal operation, ArgoCD applies this folder from Git.
 
-### Verify Deployment
+## Verify
 
 ```bash
-kubectl get pods -n hospital
-kubectl get pods -n traefik
+kubectl get pods -n traefik -o wide
+kubectl get pods -n hospital -o wide
+kubectl get svc -n traefik
+kubectl get svc -n hospital
 kubectl get gateway,httproute -n hospital
 ```
 
----
+## Test API
 
-## ⚠️ Important: No HTTPS Redirect in Traefik
-
-Since HAProxy terminates TLS and redirects HTTP to HTTPS at the edge, Traefik must not have any HTTP to HTTPS redirect configured.
-
-The Traefik DaemonSet args should look like this:
-
-```yaml
-args:
-  - --log.level=INFO
-  - --api.dashboard=false
-  - --ping=true
-  - --providers.kubernetesgateway=true
-  - --providers.kubernetescrd=true
-  - --entrypoints.web.address=:8000
-  - --entrypoints.web.forwardedHeaders.insecure=true
+```bash
+curl -i https://benhvien.teamdevops.shop/api/User/test
+curl -i https://benhvien.teamdevops.shop/api/Branch
 ```
 
-Do not add these args, otherwise HAProxy and Traefik will create a redirect loop:
-
-```yaml
-# DO NOT USE - causes redirect loop when HAProxy terminates TLS
-- --entrypoints.web.http.redirections.entrypoint.to=websecure
-- --entrypoints.web.http.redirections.entrypoint.scheme=https
-- --entrypoints.websecure.address=:443
-- --entrypoints.websecure.http.tls=true
-```
+`/api/User/test` proves routing to the backend. `/api/Branch` also proves SQL Server access.
