@@ -12,9 +12,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 REPO_DIR = BASE_DIR.parent
 TERRAFORM_DIR = REPO_DIR / "terraform"
+
 ADD_NODE_SCRIPT = TERRAFORM_DIR / "add-node.sh"
 REMOVE_NODE_SCRIPT = TERRAFORM_DIR / "remove-node.sh"
+
 WORKFLOW_SCRIPT = REPO_DIR / "ansible-web" / "provision-ec2-and-run-ansible.sh"
+SCALE_IN_WORKFLOW_SCRIPT = REPO_DIR / "remove-worker-and-reload.sh"
+
 DEFAULT_ENV_FILE = BASE_DIR / "scale-webhook.env"
 
 
@@ -37,26 +41,30 @@ HOST = os.environ.get("SCALE_WEBHOOK_HOST", "127.0.0.1")
 PORT = int(os.environ.get("SCALE_WEBHOOK_PORT", "5001"))
 COOLDOWN_SECONDS = int(os.environ.get("SCALE_WEBHOOK_COOLDOWN_SECONDS", "1800"))
 MIN_TERRAFORM_NODES = int(os.environ.get("SCALE_WEBHOOK_MIN_TERRAFORM_NODES", "0"))
+
 SSH_USER = os.environ.get("SCALE_SSH_USER", "ubuntu")
 SSH_SERVER_IP = os.environ.get("SCALE_SERVER_IP", "")
 SSH_TARGET = os.environ.get("SCALE_SSH_TARGET", f"{SSH_USER}@{SSH_SERVER_IP}" if SSH_SERVER_IP else "")
 SSH_KEY = os.environ.get("SCALE_SSH_KEY", str(REPO_DIR / "ansible-web" / "kien.pem"))
 SSH_PORT = os.environ.get("SCALE_SSH_PORT", "22")
+
 REMOTE_REPO_DIR = os.environ.get("SCALE_REPO_DIR", str(REPO_DIR))
 REMOTE_WORKFLOW_DIR = os.environ.get("SCALE_WORKFLOW_DIR", str(REPO_DIR / "ansible-web"))
 REMOTE_WORKFLOW_SCRIPT = os.environ.get(
     "SCALE_WORKFLOW_SCRIPT",
     "provision-ec2-and-run-ansible.sh",
 )
+
 SSH_COMMAND = os.environ.get(
     "SCALE_SSH_COMMAND",
     f"cd {shlex.quote(REMOTE_WORKFLOW_DIR)} && bash ./{shlex.quote(REMOTE_WORKFLOW_SCRIPT)}",
 )
+
 SCALE_DOWN_SSH_COMMAND = os.environ.get(
     "SCALE_DOWN_SSH_COMMAND",
     (
-        f"cd {shlex.quote(REMOTE_REPO_DIR.rstrip('/') + '/terraform')} "
-        f"&& MIN_TERRAFORM_NODES={MIN_TERRAFORM_NODES} bash ./remove-node.sh"
+        f"cd {shlex.quote(REMOTE_REPO_DIR)} "
+        f"&& MIN_TERRAFORM_NODES={MIN_TERRAFORM_NODES} bash ./remove-worker-and-reload.sh"
     ),
 )
 
@@ -73,6 +81,7 @@ def scale_action(payload):
 
     for alert in payload.get("alerts", []):
         labels = alert.get("labels", {})
+
         if (
             alert.get("status") == "firing"
             and labels.get("alertname") == "HighAverageNodeCpuUsage"
@@ -112,13 +121,16 @@ def mark_scaled(action):
 def log_event(message):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     line = f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {message}\n"
+
     with LOG_FILE.open("a", encoding="utf-8") as log_file:
         log_file.write(line)
+
     print(message, flush=True)
 
 
 def acquire_lock():
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+
     try:
         fd = os.open(str(LOCK_FILE), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError:
@@ -126,6 +138,7 @@ def acquire_lock():
 
     with os.fdopen(fd, "w", encoding="utf-8") as lock_file:
         lock_file.write(str(os.getpid()))
+
     return True
 
 
@@ -139,6 +152,7 @@ def release_lock():
 def run_scale(action):
     if SSH_TARGET:
         ssh_command = SCALE_DOWN_SSH_COMMAND if action == "down" else SSH_COMMAND
+
         command = [
             "ssh",
             "-p",
@@ -167,20 +181,24 @@ def run_scale(action):
 
         return result.stdout
 
+    env = os.environ.copy()
+
     if action == "down":
-        if not REMOVE_NODE_SCRIPT.exists():
-            raise FileNotFoundError(f"Missing scale-down script: {REMOVE_NODE_SCRIPT}")
-
-        command = ["bash", str(REMOVE_NODE_SCRIPT)]
-        cwd = str(TERRAFORM_DIR)
-        env = os.environ.copy()
         env.setdefault("MIN_TERRAFORM_NODES", str(MIN_TERRAFORM_NODES))
-    else:
-        env = None
 
+        if SCALE_IN_WORKFLOW_SCRIPT.exists():
+            command = ["bash", str(SCALE_IN_WORKFLOW_SCRIPT)]
+            cwd = str(REPO_DIR)
+        else:
+            if not REMOVE_NODE_SCRIPT.exists():
+                raise FileNotFoundError(f"Missing scale-down script: {REMOVE_NODE_SCRIPT}")
+
+            command = ["bash", str(REMOVE_NODE_SCRIPT)]
+            cwd = str(TERRAFORM_DIR)
+    else:
         if WORKFLOW_SCRIPT.exists():
             command = ["bash", str(WORKFLOW_SCRIPT)]
-            cwd = str(REPO_DIR)
+            cwd = str(REPO_DIR / "ansible-web")
         else:
             if not ADD_NODE_SCRIPT.exists():
                 raise FileNotFoundError(f"Missing scale script: {ADD_NODE_SCRIPT}")
@@ -210,10 +228,13 @@ def run_scale_background(action):
         output = run_scale(action)
         mark_scaled(action)
         log_event(f"EC2 scale-{action} command completed")
+
         if output:
             log_event(output[-4000:])
+
     except Exception as exc:
         log_event(f"EC2 scale-{action} command failed: {exc}")
+
     finally:
         release_lock()
 
@@ -234,21 +255,31 @@ class ScaleWebhookHandler(BaseHTTPRequestHandler):
             return
 
         action = scale_action(payload)
+
         if not action:
             self.send_json(202, {"status": "ignored"})
             return
 
         remaining = cooldown_remaining(action)
+
         if remaining > 0:
-            self.send_json(202, {"status": "cooldown", "remaining_seconds": remaining})
+            self.send_json(
+                202,
+                {
+                    "status": "cooldown",
+                    "action": action,
+                    "remaining_seconds": remaining,
+                },
+            )
             return
 
         if not acquire_lock():
-            self.send_json(202, {"status": "already_running"})
+            self.send_json(202, {"status": "already_running", "action": action})
             return
 
         thread = threading.Thread(target=run_scale_background, args=(action,), daemon=True)
         thread.start()
+
         self.send_json(202, {"status": "scale_started", "action": action})
 
     def log_message(self, fmt, *args):
@@ -256,6 +287,7 @@ class ScaleWebhookHandler(BaseHTTPRequestHandler):
 
     def send_json(self, status, payload):
         response = json.dumps(payload).encode("utf-8")
+
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(response)))

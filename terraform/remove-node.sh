@@ -21,7 +21,18 @@ current_node_count="$(
   grep -cE '^[[:space:]]*node[0-9]+[[:space:]]*=' "$TFVARS" || true
 )"
 
+if (( current_node_count == 0 )); then
+  echo "No Terraform worker nodes left to remove."
+  exit 0
+fi
 
+if (( current_node_count <= MIN_TERRAFORM_NODES )); then
+  echo "Refusing to remove node. Current Terraform node count is ${current_node_count}, minimum is ${MIN_TERRAFORM_NODES}."
+  exit 1
+fi
+
+# If no node name is passed, remove the newest node first:
+# node3 -> node2 -> node1
 if [[ -z "$node_name" ]]; then
   max_node_number="$(
     grep -oE '^[[:space:]]*node[0-9]+[[:space:]]*=' "$TFVARS" \
@@ -33,7 +44,7 @@ if [[ -z "$node_name" ]]; then
 
   if [[ -z "$max_node_number" ]]; then
     echo "No node found in $TFVARS"
-    exit 1
+    exit 0
   fi
 
   node_name="node${max_node_number}"
@@ -43,6 +54,8 @@ if ! grep -Eq "^[[:space:]]*${node_name}[[:space:]]*=" "$TFVARS"; then
   echo "$node_name does not exist in $TFVARS"
   exit 1
 fi
+
+echo "==> Removing Terraform worker ${node_name}"
 
 tmp_file="$(mktemp)"
 
