@@ -18,13 +18,28 @@ load_alb_env() {
     key="${key#"${key%%[![:space:]]*}"}"
     key="${key%"${key##*[![:space:]]}"}"
 
-    [[ -n "${key}" && "${key}" != \#* && "${key}" == ALB_* ]] || continue
+    [[ -n "${key}" && "${key}" != \#* ]] || continue
+    [[ "${key}" == ALB_* || "${key}" == "KUBECONFIG" || "${key}" == CONTROL_PLANE_* ]] || continue
+
     value="${value#"${value%%[![:space:]]*}"}"
     value="${value%"${value##*[![:space:]]}"}"
     value="${value%\"}"
     value="${value#\"}"
     export "${key}=${value}"
   done < "${ENV_FILE}"
+}
+
+wait_for_k8s_node_ready() {
+  echo "==> Current Kubernetes nodes"
+  kubectl get nodes -o wide
+}
+
+wait_for_traefik_ready() {
+  echo "==> Waiting for Traefik DaemonSet to roll out"
+  kubectl rollout status daemonset/traefik -n traefik --timeout=180s
+
+  echo "==> Traefik pods"
+  kubectl get pods -n traefik -o wide
 }
 
 if [[ ! -f "${TFVARS_FILE}" ]]; then
@@ -81,6 +96,13 @@ echo "==> Running Ansible"
 cd "${ANSIBLE_DIR}"
 chmod 400 "${KEY_FILE}" || true
 ansible-playbook -i "${INVENTORY_FILE}" "${PLAYBOOK_FILE}"
+
+if command -v kubectl >/dev/null 2>&1; then
+  wait_for_k8s_node_ready
+  wait_for_traefik_ready
+else
+  echo "==> kubectl not found locally, skipping local node/Traefik wait"
+fi
 
 if [[ -n "${ALB_RELOAD_TARGET}" ]]; then
   echo "==> Reloading HAProxy backend list on ${ALB_RELOAD_TARGET}"
