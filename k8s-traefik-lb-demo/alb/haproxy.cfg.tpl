@@ -32,6 +32,5 @@ frontend https_front
 backend traefik_nodes_http
     mode http
     balance roundrobin
-    option httpchk
-    http-check send meth GET uri / ver HTTP/1.1 hdr Host ${ALB_DOMAIN}
+    option tcp-check
 ${HAPROXY_HTTP_BACKEND_SERVERS}
