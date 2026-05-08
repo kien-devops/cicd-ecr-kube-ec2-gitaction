@@ -15,7 +15,19 @@
 
     - name: Load kubeadm join command from env file
       set_fact:
-        kubeadm_join_command: "{{ lookup('file', playbook_dir + '/.env') | regex_search('(?m)^KUBEADM_JOIN_COMMAND=(.*)$', '\\1') | first }}"
+        kubeadm_join_command: >-
+          {{
+            (
+              lookup('file', playbook_dir + '/.env')
+              | regex_search('(?m)^KUBEADM_JOIN_COMMAND=(.*)$', '\1')
+              | first
+            )
+            | trim
+            | regex_replace('^"', '')
+            | regex_replace('"$', '')
+            | regex_replace("^'", '')
+            | regex_replace("'$", '')
+          }}
 
     - name: Validate kubeadm join command
       assert:
@@ -49,5 +61,7 @@
       when: not kubelet_conf.stat.exists
 
     - name: Join Kubernetes cluster
-      command: "{{ kubeadm_join_command }}"
+      shell: "{{ kubeadm_join_command }}"
+      args:
+        executable: /bin/bash
       when: not kubelet_conf.stat.exists

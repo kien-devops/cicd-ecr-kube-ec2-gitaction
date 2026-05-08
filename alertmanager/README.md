@@ -1,69 +1,70 @@
-# 🔔 Alertmanager & Auto-Scaling Webhook
+# Alertmanager and Scale Webhook
 
-![Alertmanager](https://img.shields.io/badge/prometheus%20alertmanager-%23E6522C.svg?style=for-the-badge&logo=prometheus&logoColor=white)
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+This folder contains Alertmanager config and the Python webhook that turns Prometheus alerts into scale actions.
 
-This directory contains the Alertmanager configuration and a custom Python webhook (`scale_webhook.py`) responsible for translating Prometheus alerts into infrastructure auto-scaling events.
+## Files
 
----
+| File | Purpose |
+|---|---|
+| `alertmanager.yml.tpl` | Template config. Uses `${SCALE_WEBHOOK_URL}`. |
+| `alertmanager.yml` | Rendered config used by Alertmanager. |
+| `render-config.sh` | Renders `alertmanager.yml` from the template and `.env`. |
+| `scale_webhook.py` | HTTP webhook that receives Alertmanager payloads and runs scale scripts. |
+| `.env.example` | Example config for rendering Alertmanager. |
+| `scale-webhook.env` | Optional local runtime env for `scale_webhook.py`; do not commit secrets. |
 
-## 🏗 Architecture Model
+## Alert Flow
 
-```mermaid
-flowchart LR
-    PROM[Prometheus<br/>:9090] -->|send alerts| ALERT[Alertmanager<br/>:9093]
-    
-    subgraph Webhook Server
-        ALERT -->|High CPU Alert| WEBHOOK[Scale Webhook<br/>:5001]
-        ALERT -->|Low CPU Alert| WEBHOOK
-    end
-    
-    subgraph Auto-Scaling Logic
-        WEBHOOK -->|scale-ec2| ADD[terraform/add-node.sh]
-        WEBHOOK -->|scale-down-ec2| REMOVE[terraform/remove-node.sh]
-    end
+```text
+Prometheus alert
+  -> Alertmanager
+  -> POST /scale-ec2
+  -> scale_webhook.py
+  -> scale up: ansible-web/provision-ec2-and-run-ansible.sh
+  -> scale down: remove-worker-and-reload.sh or terraform/remove-node.sh
 ```
 
----
+## Render Alertmanager Config
 
-## ⚙️ Configuration Setup
-
-Before running Alertmanager, you must render `alertmanager.yml` by providing the real webhook URL.
-
-1. Copy the `.env.example`:
 ```bash
+cd alertmanager
 cp .env.example .env
 ```
 
-2. Update `.env` with the URL of the server running the Python scale webhook:
+Edit `.env`:
+
 ```env
-SCALE_WEBHOOK_URL="http://<WEBHOOK_SERVER_IP>:5001/scale-ec2"
+SCALE_WEBHOOK_URL="http://<webhook-host>:5001/scale-ec2"
 ```
 
-3. Render the config:
+Render:
+
 ```bash
 bash render-config.sh
 ```
 
----
+## Run the Scale Webhook
 
-## 🐍 Scale Webhook Logic
+The webhook defaults to `127.0.0.1:5001`. Configure it with env vars or `scale-webhook.env`.
 
-The custom Python webhook `scale_webhook.py` handles requests dynamically based on the action label passed from Prometheus:
+Useful variables:
 
-- **Scale-Out**: Alert `HighAverageNodeCpuUsage` passes `action=scale-ec2` -> Webhook runs `ansible-web/provision-ec2-and-run-ansible.sh` (Terraform ADD + Ansible Kubeadm Join).
-- **Scale-In**: Alert `LowAverageNodeCpuUsage` passes `action=scale-down-ec2` -> Webhook runs `terraform/remove-node.sh` (Terraform DESTROY).
+| Variable | Default | Purpose |
+|---|---|---|
+| `SCALE_WEBHOOK_HOST` | `127.0.0.1` | Bind address. |
+| `SCALE_WEBHOOK_PORT` | `5001` | Webhook port. |
+| `SCALE_WEBHOOK_COOLDOWN_SECONDS` | `1800` | Cooldown between scale actions. |
+| `SCALE_WEBHOOK_MIN_TERRAFORM_NODES` | `0` | Minimum worker count for scale down. |
+| `SCALE_SSH_TARGET` | empty | If set, run scale commands on a remote host through SSH. |
 
-### 🛡️ Safety Mechanisms:
-- **Locking**: Prevents multiple scale operations from running simultaneously.
-- **Cooldown**: Enforces a time delay between consecutive scale-out or scale-in events to prevent thrashing.
-- **Minimum Nodes**: Set `SCALE_WEBHOOK_MIN_TERRAFORM_NODES` in `scale-webhook.env` to prevent scaling in below a certain threshold.
+Start it:
 
----
+```bash
+cd alertmanager
+python3 scale_webhook.py
+```
 
-## 🐳 Running Alertmanager via Docker
-
-If not running via docker-compose, start it standalone:
+## Run Alertmanager
 
 ```bash
 docker network create demo_network || true
@@ -76,4 +77,22 @@ docker run -d \
   prom/alertmanager:latest
 ```
 
-Access UI: `http://<server-ip>:9093`
+Open:
+
+```text
+http://<server-ip>:9093
+```
+
+## Troubleshooting
+
+Check webhook logs:
+
+```bash
+tail -f alertmanager/scale_webhook.log
+```
+
+Check Alertmanager config:
+
+```bash
+docker logs alertmanager
+```

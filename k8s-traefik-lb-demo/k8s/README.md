@@ -1,73 +1,98 @@
-# 🚦 Kubernetes Traefik Gateway Stack
+# Kubernetes and Traefik Gateway Manifests
 
-![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
-![Traefik](https://img.shields.io/badge/Traefik-24A1C1?style=for-the-badge&logo=TraefikProxy&logoColor=white)
+This folder contains the Kubernetes runtime stack for the hospital application.
 
-This directory contains the Kubernetes manifests to deploy Traefik as a **Gateway API** controller alongside the core hospital application workloads (Frontend and Backend).
+## Traffic Flow
 
----
-
-## 🏗 Traffic Flow Architecture
-
-```mermaid
-flowchart TD
-    Client([External Load Balancer / HAProxy])
-    
-    Client -->|NodePort :30080| TraefikSvc[Traefik Service]
-    
-    TraefikSvc --> Gateway[Gateway: web-gateway-v1]
-    
-    Gateway --> Route[HTTPRoute: web-route-v1]
-    
-    subgraph Middlewares
-        Route --> RateLimit[Rate Limit: 10 req/s]
-        RateLimit --> Prefix[Strip Prefix /api]
-    end
-    
-    Prefix --> Condition{Path matching}
-    
-    Condition -->|/api/*| BE[Backend Service: be-service-v1]
-    Condition -->|/*| FE[Frontend Service: fe-service-v1]
-    
-    BE --> BEPods(Backend API Pods)
-    FE --> FEPods(Frontend React Pods)
+```text
+HAProxy HTTPS edge
+  -> HTTP to Traefik NodePort 30080
+  -> Gateway web-gateway-v1
+  -> HTTPRoute web-route-v1
+     - /api -> be-service-v1 -> backend pods on 8080
+     - /    -> fe-service-v1 -> frontend pods on 8000
 ```
 
----
-
-## 📂 Manifests Breakdown
+## Files
 
 | File | Purpose |
 |---|---|
 | `00-namespace.yaml` | Creates `traefik` and `hospital` namespaces. |
-| `01-traefik-rbac.yaml` | ClusterRoles/Bindings for Traefik to read Gateways & Services. |
-| `02-traefik-gatewayclass.yaml` | Registers the Traefik `GatewayClass`. |
-| `03-traefik-deployment.yaml` | Deploys Traefik as a DaemonSet across worker nodes. |
-| `04-traefik-service.yaml` | Exposes Traefik globally via NodePort `30080` (HTTP) and `30443` (HTTPS). |
-| `05` to `08` | Frontend and Backend Deployments + ClusterIP Services. |
-| `09-gateway-routes.yaml` | Defines `Gateway`, Traefik `Middleware` (Rate Limits, Headers), and `HTTPRoute`. |
+| `01-traefik-rbac.yaml` | ServiceAccount, ClusterRole, and binding for Traefik. |
+| `02-traefik-gatewayclass.yaml` | Defines `GatewayClass` named `traefik`. |
+| `03-traefik-deployment.yaml` | Runs Traefik as a DaemonSet on port `8000`. |
+| `04-traefik-service.yaml` | Exposes Traefik through NodePort `30080`. |
+| `05-fe-deployment.yaml` | Frontend Deployment from ECR. |
+| `06-fe-service.yaml` | Frontend ClusterIP Service. |
+| `07-be-deployment.yaml` | Backend Deployment from ECR. Reads DB connection from `be-db-secret`. |
+| `08-be-service.yaml` | Backend ClusterIP Service. |
+| `09-gateway-routes.yaml` | Gateway, HTTPRoute, rate limit, and security headers. |
+| `10-network-policy.yaml` | Default-deny ingress plus allow rules for Traefik to FE/BE. |
+| `apply.sh` | Installs required CRDs and applies all manifests. |
 
----
+## Required Secrets
 
-## 🔒 ECR Authentication
+### ECR Pull Secret
 
-The Deployments (`05` and `07`) pull private images from Amazon ECR **without `imagePullSecrets`**.
-Authentication is securely delegated to the **AWS IAM Instance Profiles** attached directly to the EC2 worker nodes by Terraform. 
+The deployments reference:
 
----
+```yaml
+imagePullSecrets:
+  - name: ecr-registry-secret
+```
 
-## 🚀 Deployment / Setup
+Create or refresh it:
 
-The provided shell script automatically checks for and installs required custom CRDs (Gateway API `v1.3.0` and Traefik v3 CRDs) before applying the local manifests.
+```bash
+aws ecr get-login-password --region us-east-1 \
+  | kubectl create secret docker-registry ecr-registry-secret \
+    -n hospital \
+    --docker-server=606030503959.dkr.ecr.us-east-1.amazonaws.com \
+    --docker-username=AWS \
+    --docker-password-stdin \
+    --dry-run=client -o yaml | kubectl apply -f -
+```
+
+### Backend Database Secret
+
+The backend reads `ConnectionStrings__DefaultConnection` from `be-db-secret`:
+
+```bash
+kubectl -n hospital create secret generic be-db-secret \
+  --from-literal=default-connection='Server=<DB_HOST>,1433;Database=hospital;User Id=sa;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True' \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Restart after changing it:
+
+```bash
+kubectl -n hospital rollout restart deployment/be-deployment-v1
+```
+
+## Manual Apply
 
 ```bash
 cd k8s-traefik-lb-demo
 bash k8s/apply.sh
 ```
 
-*(Note: In the full GitOps flow, ArgoCD handles the synchronization of these manifests automatically.)*
+In normal operation, ArgoCD applies this folder from Git.
 
-### Verify Deployment:
+## Verify
+
 ```bash
-kubectl get pods -n hospital
+kubectl get pods -n traefik -o wide
+kubectl get pods -n hospital -o wide
+kubectl get svc -n traefik
+kubectl get svc -n hospital
 kubectl get gateway,httproute -n hospital
+```
+
+## Test API
+
+```bash
+curl -i https://benhvien.teamdevops.shop/api/User/test
+curl -i https://benhvien.teamdevops.shop/api/Branch
+```
+
+`/api/User/test` proves routing to the backend. `/api/Branch` also proves SQL Server access.

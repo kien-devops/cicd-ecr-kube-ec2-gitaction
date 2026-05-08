@@ -14,22 +14,48 @@ spec:
       labels:
         app: fe-v1
     spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 2000
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: fe-v1
-          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-fe:5fc32b772034ee9f72e88ce012681083508953c7
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-fe:870702368f4a6fc6a3aa060fab724b6abcdf7190
           imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 8000
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /
-              port: 80
+              port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /
-              port: 80
+              port: 8000
             initialDelaySeconds: 15
             periodSeconds: 20
           resources:

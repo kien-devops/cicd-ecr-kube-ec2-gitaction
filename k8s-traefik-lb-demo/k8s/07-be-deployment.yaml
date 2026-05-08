@@ -14,24 +14,79 @@ spec:
       labels:
         app: be-v1
     spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        fsGroup: 2000
+
+      volumes:
+        - name: be-uploads
+          emptyDir: {}
+
+      initContainers:
+        - name: init-uploads-permission
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /uploads/images
+              chown -R 1654:2000 /uploads
+              chmod -R 775 /uploads
+          volumeMounts:
+            - name: be-uploads
+              mountPath: /uploads
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
       containers:
         - name: be-v1
-          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:5fc32b772034ee9f72e88ce012681083508953c7
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:870702368f4a6fc6a3aa060fab724b6abcdf7190
           imagePullPolicy: Always
+
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: be-db-secret
+                  key: default-connection
+
           ports:
             - containerPort: 8080
+
+          volumeMounts:
+            - name: be-uploads
+              mountPath: /app/wwwroot/uploads
+
           readinessProbe:
             httpGet:
               path: /healthz
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
+
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 20
+
           resources:
             requests:
               cpu: 100m

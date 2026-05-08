@@ -1,31 +1,36 @@
 groups:
-  - name: node-exporter-alerts
+  - name: ec2-worker-autoscaling
     rules:
-      - alert: NodeExporterDown
-        expr: up{job="node_exporter"} == 0
-        for: 30s
-        labels:
-          severity: critical
-        annotations:
-          summary: "Node exporter down: {{ $labels.instance }}"
-          description: "Target {{ $labels.instance }} has been down for more than 30 seconds."
-
       - alert: HighAverageNodeCpuUsage
-        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{job="node_exporter", mode="idle"}[5m]))) > 50
+        expr: |
+          avg(
+            100 - (
+              avg by (instance) (
+                rate(node_cpu_seconds_total{job="node-exporter-ec2-workers", mode="idle"}[2m])
+              ) * 100
+            )
+          ) > 70
         for: 2m
         labels:
           severity: warning
           action: scale-ec2
         annotations:
-          summary: "Average node CPU usage is above 50%"
-          description: "Average CPU usage across node_exporter targets is {{ $value | printf \"%.2f\" }}% for more than 2 minutes."
+          summary: "High average EC2 worker CPU usage"
+          description: "Average CPU usage across EC2 worker nodes is above 70% for 2 minutes."
 
       - alert: LowAverageNodeCpuUsage
-        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{job="node_exporter", mode="idle"}[5m]))) < 50
+        expr: |
+          avg(
+            100 - (
+              avg by (instance) (
+                rate(node_cpu_seconds_total{job="node-exporter-ec2-workers", mode="idle"}[5m])
+              ) * 100
+            )
+          ) < 30
         for: 5m
         labels:
           severity: warning
           action: scale-down-ec2
         annotations:
-          summary: "Average node CPU usage is below 50%"
-          description: "Average CPU usage across node_exporter targets is {{ $value | printf \"%.2f\" }}% for more than 5 minutes."
+          summary: "Low average EC2 worker CPU usage"
+          description: "Average CPU usage across EC2 worker nodes is below 30% for 5 minutes."

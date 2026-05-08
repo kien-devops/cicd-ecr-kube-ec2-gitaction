@@ -17,9 +17,13 @@ ENV ASPNETCORE_URLS=http://+:8080
 
 COPY --from=build /app/publish .
 
+# Switch to built-in non-root user 'app' (UID 1654) provided by Microsoft's .NET images.
+# This user already exists inside the base image — no need to create it manually.
+USER app
+
 EXPOSE 8080
 
-CMD ["dotnet", "Hospital_API.dll"] 
+CMD ["dotnet", "Hospital_API.dll"]
 
 # docker rm -f cons-dotnet && docker rmi img-dotnet
 # docker build . -t img-dotnet

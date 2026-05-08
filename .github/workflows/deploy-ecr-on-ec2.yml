@@ -18,6 +18,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # Skip if commit was created by CI bot to avoid infinite loop
     if: "!contains(github.event.head_commit.message, 'ci: update image tag')"
 
@@ -42,7 +43,7 @@ jobs:
 
           GIT_AUTH=$(printf '%s' "${GIT_USERNAME}:${GIT_PASSWORD}" | base64 | tr -d '\n')
 
-          ssh -i ~/.ssh/ec2_key \
+          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "ubuntu@${EC2_HOST}" \
             "GIT_AUTH='${GIT_AUTH}' REPO_DIR='${REPO_DIR}' REPO_URL='${REPO_URL}' REGISTRY='${REGISTRY}' AWS_REGION='${AWS_REGION}' IMAGE_TAG='${IMAGE_TAG}' /bin/bash -s" <<'EOF'
           set -euo pipefail

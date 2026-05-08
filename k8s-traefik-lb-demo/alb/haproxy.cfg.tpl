@@ -14,23 +14,23 @@ frontend http_front
     mode http
     option httplog
     option forwardfor
+    # Redirect all HTTP traffic to HTTPS
+    http-request redirect scheme https code 301 if !{ ssl_fc }
     default_backend traefik_nodes_http
 
 frontend https_front
-    bind *:443
-    mode tcp
-    option tcplog
-    default_backend traefik_nodes_https
+    bind *:443 ssl crt /usr/local/etc/haproxy/certs/benhvien.teamdevops.shop.pem
+    mode http
+    option httplog
+    option forwardfor
+    http-request set-header X-Forwarded-Proto https
+    http-request set-header X-Forwarded-Port 443
+    http-request set-header X-Forwarded-Host %[req.hdr(Host)]
+    http-request set-header X-Real-IP %[src]
+    default_backend traefik_nodes_http
 
 backend traefik_nodes_http
     mode http
     balance roundrobin
-    option httpchk
-    http-check send meth GET uri / ver HTTP/1.1 hdr Host ${ALB_DOMAIN}
-${HAPROXY_HTTP_BACKEND_SERVERS}
-
-backend traefik_nodes_https
-    mode tcp
-    balance roundrobin
     option tcp-check
-${HAPROXY_HTTPS_BACKEND_SERVERS}
+${HAPROXY_HTTP_BACKEND_SERVERS}

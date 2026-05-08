@@ -22,17 +22,17 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --log.level=INFO
-            - --api.dashboard=true
+            # Disable dashboard in production or restrict to internal entrypoint only
+            - --api.dashboard=false
             - --ping=true
             - --providers.kubernetesgateway=true
             - --providers.kubernetescrd=true
+            # HTTP entrypoint: TLS is terminated by HAProxy, so no redirect needed here
             - --entrypoints.web.address=:8000
-            - --entrypoints.websecure.address=:443
+            - --entrypoints.web.forwardedHeaders.insecure=true
           ports:
             - name: web
               containerPort: 8000
-            - name: websecure
-              containerPort: 443
             - name: traefik
               containerPort: 8080
           readinessProbe:
