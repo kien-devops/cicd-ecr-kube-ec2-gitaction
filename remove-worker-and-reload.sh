@@ -79,7 +79,7 @@ if [[ -z "${TF_NODE_NAME}" ]]; then
 fi
 
 if [[ -z "${TF_NODE_NAME}" ]]; then
-  echo "No Terraform worker nodes left to remove."
+  echo "No autoscaled EC2 worker nodes found. Skip scale-in."
   exit 0
 fi
 
@@ -126,4 +126,3 @@ echo "==> Current HAProxy backend servers"
 grep '^[[:space:]]*server worker' "${ROOT_DIR}/k8s-traefik-lb-demo/alb/haproxy.cfg" || true
 
 echo "==> Scale-in done"
-EOF

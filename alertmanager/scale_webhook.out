@@ -1,0 +1,933 @@
+Scale webhook listening on http://0.0.0.0:5001/scale-ec2
+127.0.0.1 - "POST /scale-ec2 HTTP/1.1" 202 -
+Starting EC2 scale-up command
+EC2 scale-up command failed: ==> Adding one EC2 node with Terraform
+[0m[1mInitializing modules...[0m
+[0m[1mInitializing provider plugins found in the configuration...[0m
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/aws v5.100.0
+- Using previously-installed hashicorp/local v2.8.0
+
+[0m[1mInitializing the backend...[0m
+
+[0m[1mInitializing provider plugins found in the state...[0m
+- Reusing previous version of hashicorp/aws
+- Reusing previous version of hashicorp/local
+- Using previously-installed hashicorp/aws v5.100.0
+- Using previously-installed hashicorp/local v2.8.0
+
+
+[0m[1m[32mTerraform has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[0m[1mmodule.ec2_workers.data.aws_security_group.selected: Reading...[0m[0m
+[0m[1mmodule.ec2_workers.aws_iam_policy.ecr_pull: Refreshing state... [id=arn:aws:iam::606030503959:policy/hospital-ecr-pull-policy][0m
+[0m[1mmodule.ec2_workers.aws_iam_role.worker_role: Refreshing state... [id=hospital-worker-role][0m
+[0m[1mmodule.ec2_workers.aws_iam_instance_profile.worker_profile: Refreshing state... [id=hospital-worker-profile][0m
+[0m[1mmodule.ec2_workers.aws_iam_role_policy_attachment.ecr_pull_attach: Refreshing state... [id=hospital-worker-role-20260507190746941600000001][0m
+[0m[1mmodule.ec2_workers.data.aws_security_group.selected: Read complete after 0s [id=sg-0c85417b372570c73][0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Refreshing state... [id=356e3b6eff05f351a7f2729e2f5dcafc5e219135][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+[31m-[0m/[32m+[0m destroy and then create replacement[0m
+
+Terraform will perform the following actions:
+
+[1m  # module.ec2_workers.aws_instance.node["node1"][0m will be created
+[0m  [32m+[0m[0m resource "aws_instance" "node" {
+      [32m+[0m[0m ami                                  = "ami-091138d0f0d41ff90"
+      [32m+[0m[0m arn                                  = (known after apply)
+      [32m+[0m[0m associate_public_ip_address          = (known after apply)
+      [32m+[0m[0m availability_zone                    = (known after apply)
+      [32m+[0m[0m cpu_core_count                       = (known after apply)
+      [32m+[0m[0m cpu_threads_per_core                 = (known after apply)
+      [32m+[0m[0m disable_api_stop                     = (known after apply)
+      [32m+[0m[0m disable_api_termination              = (known after apply)
+      [32m+[0m[0m ebs_optimized                        = (known after apply)
+      [32m+[0m[0m enable_primary_ipv6                  = (known after apply)
+      [32m+[0m[0m get_password_data                    = false
+      [32m+[0m[0m host_id                              = (known after apply)
+      [32m+[0m[0m host_resource_group_arn              = (known after apply)
+      [32m+[0m[0m iam_instance_profile                 = "hospital-worker-profile"
+      [32m+[0m[0m id                                   = (known after apply)
+      [32m+[0m[0m instance_initiated_shutdown_behavior = (known after apply)
+      [32m+[0m[0m instance_lifecycle                   = (known after apply)
+      [32m+[0m[0m instance_state                       = (known after apply)
+      [32m+[0m[0m instance_type                        = "t3.small"
+      [32m+[0m[0m ipv6_address_count                   = (known after apply)
+      [32m+[0m[0m ipv6_addresses                       = (known after apply)
+      [32m+[0m[0m key_name                             = "kien"
+      [32m+[0m[0m monitoring                           = (known after apply)
+      [32m+[0m[0m outpost_arn                          = (known after apply)
+      [32m+[0m[0m password_data                        = (known after apply)
+      [32m+[0m[0m placement_group                      = (known after apply)
+      [32m+[0m[0m placement_partition_number           = (known after apply)
+      [32m+[0m[0m primary_network_interface_id         = (known after apply)
+      [32m+[0m[0m private_dns                          = (known after apply)
+      [32m+[0m[0m private_ip                           = (known after apply)
+      [32m+[0m[0m public_dns                           = (known after apply)
+      [32m+[0m[0m public_ip                            = (known after apply)
+      [32m+[0m[0m secondary_private_ips                = (known after apply)
+      [32m+[0m[0m security_groups                      = (known after apply)
+      [32m+[0m[0m source_dest_check                    = true
+      [32m+[0m[0m spot_instance_request_id             = (known after apply)
+      [32m+[0m[0m subnet_id                            = (known after apply)
+      [32m+[0m[0m tags                                 = {
+          [32m+[0m[0m "ManagedBy"  = "terraform"
+          [32m+[0m[0m "Monitoring" = "enabled"
+          [32m+[0m[0m "Name"       = "node1"
+          [32m+[0m[0m "Project"    = "hospital"
+        }
+      [32m+[0m[0m tags_all                             = {
+          [32m+[0m[0m "ManagedBy"  = "terraform"
+          [32m+[0m[0m "Monitoring" = "enabled"
+          [32m+[0m[0m "Name"       = "node1"
+          [32m+[0m[0m "Project"    = "hospital"
+        }
+      [32m+[0m[0m tenancy                              = (known after apply)
+      [32m+[0m[0m user_data                            = (known after apply)
+      [32m+[0m[0m user_data_base64                     = (known after apply)
+      [32m+[0m[0m user_data_replace_on_change          = false
+      [32m+[0m[0m vpc_security_group_ids               = [
+          [32m+[0m[0m "sg-0c85417b372570c73",
+        ]
+
+      [32m+[0m[0m capacity_reservation_specification (known after apply)
+
+      [32m+[0m[0m cpu_options (known after apply)
+
+      [32m+[0m[0m ebs_block_device (known after apply)
+
+      [32m+[0m[0m enclave_options (known after apply)
+
+      [32m+[0m[0m ephemeral_block_device (known after apply)
+
+      [32m+[0m[0m instance_market_options (known after apply)
+
+      [32m+[0m[0m maintenance_options (known after apply)
+
+      [32m+[0m[0m metadata_options (known after apply)
+
+      [32m+[0m[0m network_interface (known after apply)
+
+      [32m+[0m[0m private_dns_name_options (known after apply)
+
+      [32m+[0m[0m root_block_device (known after apply)
+    }
+
+[1m  # module.ec2_workers.local_file.ansible_inventory[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "local_file" "ansible_inventory" {
+      [33m~[0m[0m content              = "[web]" -> (known after apply) [31m# forces replacement[0m[0m
+      [33m~[0m[0m content_base64sha256 = "HoouL2yKh18HVEcQ0cec6WZJGavHrYYL8SMt6WpN8m8=" -> (known after apply)
+      [33m~[0m[0m content_base64sha512 = "CRmxO48/ugyuFr3l6RvG6dxUp+qfCZ1zmab/3tKP9Bud9dmzUDKahON1svccuET8cpwg3FDV31lG56xHu5Ny8A==" -> (known after apply)
+      [33m~[0m[0m content_md5          = "044a7eab4ebe5e69085c0ac8d3adad5e" -> (known after apply)
+      [33m~[0m[0m content_sha1         = "356e3b6eff05f351a7f2729e2f5dcafc5e219135" -> (known after apply)
+      [33m~[0m[0m content_sha256       = "1e8a2e2f6c8a875f07544710d1c79ce9664919abc7ad860bf1232de96a4df26f" -> (known after apply)
+      [33m~[0m[0m content_sha512       = "0919b13b8f3fba0cae16bde5e91bc6e9dc54a7ea9f099d7399a6ffded28ff41b9df5d9b350329a84e375b2f71cb844fc729c20dc50d5df5946e7ac47bb9372f0" -> (known after apply)
+      [33m~[0m[0m id                   = "356e3b6eff05f351a7f2729e2f5dcafc5e219135" -> (known after apply)
+        [90m# (3 unchanged attributes hidden)[0m[0m
+    }
+
+[1mPlan:[0m [0m2 to add, 0 to change, 1 to destroy.
+
+Changes to Outputs:
+  [33m~[0m[0m instance_ids   = {
+      [32m+[0m[0m node1 = (known after apply)
+    }
+  [33m~[0m[0m instance_names = [
+      [32m+[0m[0m "node1",
+    ]
+  [33m~[0m[0m private_ips    = {
+      [32m+[0m[0m node1 = (known after apply)
+    }
+  [33m~[0m[0m public_ips     = {
+      [32m+[0m[0m node1 = (known after apply)
+    }
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destroying... [id=356e3b6eff05f351a7f2729e2f5dcafc5e219135][0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destruction complete after 0s[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Creating...[0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still creating... [00m10s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Creation complete after 13s [id=i-08596f7e7a53b72bc][0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creating...[0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creation complete after 0s [id=ef77948085fbe66ce29c0f2f1f58e65a3cf3a41c][0m
+[0m[1m[32m
+Apply complete! Resources: 2 added, 0 changed, 1 destroyed.[0m
+[0m[1m[32m
+Outputs:
+
+[0minstance_ids = {
+  "node1" = "i-08596f7e7a53b72bc"
+}
+instance_names = tolist([
+  "node1",
+])
+private_ips = {
+  "node1" = "172.31.34.187"
+}
+public_ips = {
+  "node1" = "18.209.171.24"
+}
+==> Terraform outputs
+instance_ids = {
+  "node1" = "i-08596f7e7a53b72bc"
+}
+instance_names = tolist([
+  "node1",
+])
+private_ips = {
+  "node1" = "172.31.34.187"
+}
+public_ips = {
+  "node1" = "18.209.171.24"
+}
+==> Running Ansible
+
+PLAY [Prepare Kubernetes worker and join cluster] ******************************
+
+TASK [Wait for SSH to become available] ****************************************
+ok: [node1]
+
+TASK [Gather facts] ************************************************************
+ok: [node1]
+
+TASK [Load kubeadm join command from env file] *********************************
+ok: [node1]
+
+TASK [Validate kubeadm join command] *******************************************
+ok: [node1] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Check whether node already joined the cluster] ***************************
+ok: [node1]
+
+TASK [Copy Kubernetes common setup script] *************************************
+changed: [node1]
+
+TASK [Normalize common setup script line endings] ******************************
+ok: [node1]
+
+TASK [Run Kubernetes common setup script with bash] ****************************
+changed: [node1]
+
+TASK [Join Kubernetes cluster] *************************************************
+changed: [node1]
+
+PLAY RECAP *********************************************************************
+node1                      : ok=9    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+==> Current Kubernetes nodes
+NAME               STATUS     ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION   CONTAINER-RUNTIME
+ip-172-31-20-93    Ready      <none>          2d22h   v1.30.0   172.31.20.93    <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-29-135   Ready      control-plane   2d22h   v1.30.0   172.31.29.135   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-34-187   NotReady   <none>          1s      v1.30.0   172.31.34.187   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+==> Detecting newest Terraform worker private IP
+==> New node private IP: 172.31.34.187
+==> Waiting for Kubernetes node with IP 172.31.34.187 to appear
+==> New Kubernetes node: ip-172-31-34-187
+==> Waiting for ip-172-31-34-187 to become Ready
+node/ip-172-31-34-187 condition met
+==> Waiting for Traefik pod on ip-172-31-34-187
+Waiting for Traefik pod on ip-172-31-34-187...
+Waiting for Traefik pod on ip-172-31-34-187...
+Waiting for Traefik pod on ip-172-31-34-187...
+Waiting for Traefik pod on ip-172-31-34-187...
+Waiting for Traefik pod on ip-172-31-34-187...
+Waiting for Traefik pod on ip-172-31-34-187...
+==> Traefik pod ready on new node: traefik-qbfg8
+==> New node and Traefik are ready
+NAME               STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION   CONTAINER-RUNTIME
+ip-172-31-20-93    Ready    <none>          2d22h   v1.30.0   172.31.20.93    <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-29-135   Ready    control-plane   2d22h   v1.30.0   172.31.29.135   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-34-187   Ready    <none>          42s     v1.30.0   172.31.34.187   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+NAME            READY   STATUS    RESTARTS   AGE    IP                NODE               NOMINATED NODE   READINESS GATES
+traefik-52bqp   1/1     Running   0          178m   192.168.183.118   ip-172-31-20-93    <none>           <none>
+traefik-qbfg8   1/1     Running   0          31s    192.168.126.129   ip-172-31-34-187   <none>           <none>
+==> Waiting for Traefik DaemonSet to roll out
+daemon set "traefik" successfully rolled out
+==> Traefik pods
+NAME            READY   STATUS    RESTARTS   AGE    IP                NODE               NOMINATED NODE   READINESS GATES
+traefik-52bqp   1/1     Running   0          178m   192.168.183.118   ip-172-31-20-93    <none>           <none>
+traefik-qbfg8   1/1     Running   0          31s    192.168.126.129   ip-172-31-34-187   <none>           <none>
+==> Reloading HAProxy backend list
+==> Discovering Traefik nodes and regenerating haproxy.cfg
+Wrote /home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb/haproxy.cfg
+    server worker1 172.31.20.93:30080 check
+    server worker2 172.31.34.187:30080 check
+    server worker1 172.31.20.93:30443 check
+    server worker2 172.31.34.187:30443 check
+==> Checking HAProxy container
+==> Checking mounted config path
+==> Validating HAProxy config
+==> Reloading HAProxy gracefully
+==> HAProxy backend servers on host
+    server worker1 172.31.20.93:30080 check
+    server worker2 172.31.34.187:30080 check
+==> HAProxy backend servers in container
+    server worker1 172.31.20.93:30080 check
+    server worker2 172.31.43.176:30080 check
+==> HAProxy logs
+Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+13.218.94.63:29158 [08/May/2026:16:12:28.991] https_front~ traefik_nodes_http/worker1 0/0/1/2/3 200 10897 - - ---- 1/1/0/0/0 0/0 "GET /robots.txt HTTP/1.1"
+52.206.189.10:42326 [08/May/2026:16:12:30.395] https_front~ traefik_nodes_http/worker1 0/0/1/1/2 200 10897 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
+198.235.24.33:62438 [08/May/2026:16:12:43.327] https_front~ traefik_nodes_http/worker1 0/0/1/1/2 200 10897 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
+13.250.241.209:60133 [08/May/2026:16:15:40.621] https_front/1: SSL handshake failure (error:0A000102:SSL routines::unsupported protocol)
+13.250.241.209:38659 [08/May/2026:16:15:40.623] https_front/1: SSL handshake failure (error:0A00018C:SSL routines::version too low)
+13.250.241.209:23257 [08/May/2026:16:15:40.624] https_front/1: SSL handshake failure (error:0A0000C1:SSL routines::no shared cipher)
+13.250.241.209:16485 [08/May/2026:16:15:40.627] https_front/1: SSL handshake failure (error:0A0000FC:SSL routines::unknown protocol)
+13.250.241.209:55678 [08/May/2026:16:15:40.629] https_front/1: SSL handshake failure (error:0A000102:SSL routines::unsupported protocol)
+13.250.241.209:4808 [08/May/2026:16:15:40.838] https_front~ https_front/<NOSRV> -1/-1/-1/-1/17 400 0 - - CR-- 2/2/0/0/0 0/0 "<BADREQ>"
+[NOTICE]   (1) : haproxy version is 2.9.15-e872a3f
+[NOTICE]   (1) : path to executable is /usr/local/sbin/haproxy
+[WARNING]  (1) : Former worker (485) exited with code 0 (Exit)
+[WARNING]  (503) : Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+13.250.241.209:57218 [08/May/2026:16:15:40.863] https_front~ https_front/<NOSRV> -1/-1/-1/-1/0 400 0 - - CR-- 1/1/0/0/0 0/0 "<BADREQ>"
+Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy https_front stopped (cumulated conns: FE: 10, BE: 0).
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 3).
+Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+[NOTICE]   (1) : Reloading HAProxy
+[WARNING]  (503) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (503) : Proxy https_front stopped (cumulated conns: FE: 10, BE: 0).
+[WARNING]  (503) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 3).
+[NOTICE]   (1) : New worker (527) forked
+[NOTICE]   (1) : Loading success.
+[NOTICE]   (1) : haproxy version is 2.9.15-e872a3f
+[NOTICE]   (1) : path to executable is /usr/local/sbin/haproxy
+[WARNING]  (1) : Former worker (503) exited with code 0 (Exit)
+[WARNING]  (527) : Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+[NOTICE]   (1) : Reloading HAProxy
+[NOTICE]   (1) : New worker (544) forked
+[NOTICE]   (1) : Loading success.
+[WARNING]  (527) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (527) : Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (527) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+[NOTICE]   (1) : haproxy version is 2.9.15-e872a3f
+[NOTICE]   (1) : path to executable is /usr/local/sbin/haproxy
+[WARNING]  (1) : Former worker (527) exited with code 0 (Exit)
+[WARNING]  (544) : Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+[NOTICE]   (1) : Reloading HAProxy
+[WARNING]  (544) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (544) : Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (544) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+[NOTICE]   (1) : New worker (568) forked
+[NOTICE]   (1) : Loading success.
+[NOTICE]   (1) : haproxy version is 2.9.15-e872a3f
+[NOTICE]   (1) : path to executable is /usr/local/sbin/haproxy
+[WARNING]  (1) : Former worker (544) exited with code 0 (Exit)
+[WARNING]  (568) : Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+[NOTICE]   (1) : Reloading HAProxy
+[NOTICE]   (1) : New worker (585) forked
+[WARNING]  (568) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (568) : Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (568) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+[NOTICE]   (1) : Loading success.
+[NOTICE]   (1) : haproxy version is 2.9.15-e872a3f
+[NOTICE]   (1) : path to executable is /usr/local/sbin/haproxy
+[WARNING]  (1) : Former worker (568) exited with code 0 (Exit)
+[WARNING]  (585) : Server traefik_nodes_http/worker2 is DOWN, reason: Layer4 timeout, check duration: 2003ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+[NOTICE]   (1) : Reloading HAProxy
+[WARNING]  (585) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (585) : Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (585) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+[NOTICE]   (1) : New worker (602) forked
+[NOTICE]   (1) : Loading success.
+==> Verifying HAProxy backend config on host
+    server worker1 172.31.20.93:30080 check
+    server worker2 172.31.34.187:30080 check
+==> Verifying HAProxy backend config in container
+    server worker1 172.31.20.93:30080 check
+    server worker2 172.31.43.176:30080 check
+==> Recent HAProxy backend logs
+[NOTICE]   (1) : Reloading HAProxy
+[WARNING]  (585) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (585) : Proxy https_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (585) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+[NOTICE]   (1) : New worker (602) forked
+[NOTICE]   (1) : Loading success.
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 0).
+==> Done
+Check node status with: kubectl get nodes -o wide
+Check HAProxy backend with: sudo docker exec haproxy-alb grep 'server worker' /usr/local/etc/haproxy/haproxy.cfg
+./provision-ec2-and-run-ansible.sh: line 297: EOF: command not found
+
+172.17.0.5 - "POST /scale-ec2 HTTP/1.1" 202 -
+Starting EC2 scale-down command
+EC2 scale-down command failed: ==> Selected Terraform node for scale-in: node1
+==> Private IP: 172.31.34.187
+==> Kubernetes node: ip-172-31-34-187
+==> Draining Kubernetes node
+node/ip-172-31-34-187 cordoned
+node/ip-172-31-34-187 drained
+Warning: ignoring DaemonSet-managed Pods: kube-system/calico-node-xgt9q, kube-system/kube-proxy-pxmmr, traefik/traefik-qbfg8
+==> Deleting Kubernetes node
+node "ip-172-31-34-187" deleted
+==> Removing EC2 worker from Terraform/IaC
+==> Removing Terraform worker node1
+[0m[1mInitializing modules...[0m
+[0m[1mInitializing provider plugins found in the configuration...[0m
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/aws v5.100.0
+- Using previously-installed hashicorp/local v2.8.0
+
+[0m[1mInitializing the backend...[0m
+
+[0m[1mInitializing provider plugins found in the state...[0m
+- Reusing previous version of hashicorp/aws
+- Reusing previous version of hashicorp/local
+- Using previously-installed hashicorp/aws v5.100.0
+- Using previously-installed hashicorp/local v2.8.0
+
+
+[0m[1m[32mTerraform has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[0m[1mmodule.ec2_workers.data.aws_security_group.selected: Reading...[0m[0m
+[0m[1mmodule.ec2_workers.aws_iam_policy.ecr_pull: Refreshing state... [id=arn:aws:iam::606030503959:policy/hospital-ecr-pull-policy][0m
+[0m[1mmodule.ec2_workers.aws_iam_role.worker_role: Refreshing state... [id=hospital-worker-role][0m
+[0m[1mmodule.ec2_workers.data.aws_security_group.selected: Read complete after 0s [id=sg-0c85417b372570c73][0m
+[0m[1mmodule.ec2_workers.aws_iam_role_policy_attachment.ecr_pull_attach: Refreshing state... [id=hospital-worker-role-20260507190746941600000001][0m
+[0m[1mmodule.ec2_workers.aws_iam_instance_profile.worker_profile: Refreshing state... [id=hospital-worker-profile][0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Refreshing state... [id=i-08596f7e7a53b72bc][0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Refreshing state... [id=ef77948085fbe66ce29c0f2f1f58e65a3cf3a41c][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [31m-[0m destroy[0m
+[31m-[0m/[32m+[0m destroy and then create replacement[0m
+
+Terraform will perform the following actions:
+
+[1m  # module.ec2_workers.aws_instance.node["node1"][0m will be [1m[31mdestroyed[0m
+  # (because key ["node1"] is not in for_each map)
+[0m  [31m-[0m[0m resource "aws_instance" "node" {
+      [31m-[0m[0m ami                                  = "ami-091138d0f0d41ff90" [90m-> null[0m[0m
+      [31m-[0m[0m arn                                  = "arn:aws:ec2:us-east-1:606030503959:instance/i-08596f7e7a53b72bc" [90m-> null[0m[0m
+      [31m-[0m[0m associate_public_ip_address          = true [90m-> null[0m[0m
+      [31m-[0m[0m availability_zone                    = "us-east-1d" [90m-> null[0m[0m
+      [31m-[0m[0m cpu_core_count                       = 1 [90m-> null[0m[0m
+      [31m-[0m[0m cpu_threads_per_core                 = 2 [90m-> null[0m[0m
+      [31m-[0m[0m disable_api_stop                     = false [90m-> null[0m[0m
+      [31m-[0m[0m disable_api_termination              = false [90m-> null[0m[0m
+      [31m-[0m[0m ebs_optimized                        = false [90m-> null[0m[0m
+      [31m-[0m[0m get_password_data                    = false [90m-> null[0m[0m
+      [31m-[0m[0m hibernation                          = false [90m-> null[0m[0m
+      [31m-[0m[0m iam_instance_profile                 = "hospital-worker-profile" [90m-> null[0m[0m
+      [31m-[0m[0m id                                   = "i-08596f7e7a53b72bc" [90m-> null[0m[0m
+      [31m-[0m[0m instance_initiated_shutdown_behavior = "stop" [90m-> null[0m[0m
+      [31m-[0m[0m instance_state                       = "running" [90m-> null[0m[0m
+      [31m-[0m[0m instance_type                        = "t3.small" [90m-> null[0m[0m
+      [31m-[0m[0m ipv6_address_count                   = 0 [90m-> null[0m[0m
+      [31m-[0m[0m ipv6_addresses                       = [] [90m-> null[0m[0m
+      [31m-[0m[0m key_name                             = "kien" [90m-> null[0m[0m
+      [31m-[0m[0m monitoring                           = false [90m-> null[0m[0m
+      [31m-[0m[0m placement_partition_number           = 0 [90m-> null[0m[0m
+      [31m-[0m[0m primary_network_interface_id         = "eni-0815f919a3baf25e0" [90m-> null[0m[0m
+      [31m-[0m[0m private_dns                          = "ip-172-31-34-187.ec2.internal" [90m-> null[0m[0m
+      [31m-[0m[0m private_ip                           = "172.31.34.187" [90m-> null[0m[0m
+      [31m-[0m[0m public_dns                           = "ec2-18-209-171-24.compute-1.amazonaws.com" [90m-> null[0m[0m
+      [31m-[0m[0m public_ip                            = "18.209.171.24" [90m-> null[0m[0m
+      [31m-[0m[0m secondary_private_ips                = [] [90m-> null[0m[0m
+      [31m-[0m[0m security_groups                      = [
+          [31m-[0m[0m "default",
+        ] [90m-> null[0m[0m
+      [31m-[0m[0m source_dest_check                    = true [90m-> null[0m[0m
+      [31m-[0m[0m subnet_id                            = "subnet-09a85870a92c19c75" [90m-> null[0m[0m
+      [31m-[0m[0m tags                                 = {
+          [31m-[0m[0m "ManagedBy"  = "terraform"
+          [31m-[0m[0m "Monitoring" = "enabled"
+          [31m-[0m[0m "Name"       = "node1"
+          [31m-[0m[0m "Project"    = "hospital"
+        } [90m-> null[0m[0m
+      [31m-[0m[0m tags_all                             = {
+          [31m-[0m[0m "ManagedBy"  = "terraform"
+          [31m-[0m[0m "Monitoring" = "enabled"
+          [31m-[0m[0m "Name"       = "node1"
+          [31m-[0m[0m "Project"    = "hospital"
+        } [90m-> null[0m[0m
+      [31m-[0m[0m tenancy                              = "default" [90m-> null[0m[0m
+      [31m-[0m[0m user_data_replace_on_change          = false [90m-> null[0m[0m
+      [31m-[0m[0m vpc_security_group_ids               = [
+          [31m-[0m[0m "sg-0c85417b372570c73",
+        ] [90m-> null[0m[0m
+        [90m# (6 unchanged attributes hidden)[0m[0m
+
+      [31m-[0m[0m capacity_reservation_specification {
+          [31m-[0m[0m capacity_reservation_preference = "open" [90m-> null[0m[0m
+        }
+
+      [31m-[0m[0m cpu_options {
+          [31m-[0m[0m core_count       = 1 [90m-> null[0m[0m
+          [31m-[0m[0m threads_per_core = 2 [90m-> null[0m[0m
+            [90m# (1 unchanged attribute hidden)[0m[0m
+        }
+
+      [31m-[0m[0m credit_specification {
+          [31m-[0m[0m cpu_credits = "unlimited" [90m-> null[0m[0m
+        }
+
+      [31m-[0m[0m enclave_options {
+          [31m-[0m[0m enabled = false [90m-> null[0m[0m
+        }
+
+      [31m-[0m[0m maintenance_options {
+          [31m-[0m[0m auto_recovery = "default" [90m-> null[0m[0m
+        }
+
+      [31m-[0m[0m metadata_options {
+          [31m-[0m[0m http_endpoint               = "enabled" [90m-> null[0m[0m
+          [31m-[0m[0m http_protocol_ipv6          = "disabled" [90m-> null[0m[0m
+          [31m-[0m[0m http_put_response_hop_limit = 2 [90m-> null[0m[0m
+          [31m-[0m[0m http_tokens                 = "required" [90m-> null[0m[0m
+          [31m-[0m[0m instance_metadata_tags      = "disabled" [90m-> null[0m[0m
+        }
+
+      [31m-[0m[0m private_dns_name_options {
+          [31m-[0m[0m enable_resource_name_dns_a_record    = false [90m-> null[0m[0m
+          [31m-[0m[0m enable_resource_name_dns_aaaa_record = false [90m-> null[0m[0m
+          [31m-[0m[0m hostname_type                        = "ip-name" [90m-> null[0m[0m
+        }
+
+      [31m-[0m[0m root_block_device {
+          [31m-[0m[0m delete_on_termination = true [90m-> null[0m[0m
+          [31m-[0m[0m device_name           = "/dev/sda1" [90m-> null[0m[0m
+          [31m-[0m[0m encrypted             = false [90m-> null[0m[0m
+          [31m-[0m[0m iops                  = 3000 [90m-> null[0m[0m
+          [31m-[0m[0m tags                  = {} [90m-> null[0m[0m
+          [31m-[0m[0m tags_all              = {} [90m-> null[0m[0m
+          [31m-[0m[0m throughput            = 125 [90m-> null[0m[0m
+          [31m-[0m[0m volume_id             = "vol-0c05b35fa3dc132a1" [90m-> null[0m[0m
+          [31m-[0m[0m volume_size           = 8 [90m-> null[0m[0m
+          [31m-[0m[0m volume_type           = "gp3" [90m-> null[0m[0m
+            [90m# (1 unchanged attribute hidden)[0m[0m
+        }
+    }
+
+[1m  # module.ec2_workers.local_file.ansible_inventory[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "local_file" "ansible_inventory" {
+      [33m~[0m[0m content              = <<-EOT [31m# forces replacement[0m[0m
+            [web]
+          [31m-[0m[0m node1 ansible_host=172.31.34.187 ansible_user=ubuntu ansible_ssh_private_key_file=./kien.pem ansible_python_interpreter=/usr/bin/python3
+        EOT
+      [33m~[0m[0m content_base64sha256 = "ZeE1qrhWANCaZk6wc2c/IEQK6bopu6VmumsgJhD6P1c=" -> (known after apply)
+      [33m~[0m[0m content_base64sha512 = "BgXQmtYspF2R4jDyz8s2vVWuoCODVgJ/59mVaLpim15w16UYyGDHAYJL+zPbtUWdNMkgQsRwFGAYI31MWHO8uw==" -> (known after apply)
+      [33m~[0m[0m content_md5          = "a40925324b3615a2f4dc8240e98190e0" -> (known after apply)
+      [33m~[0m[0m content_sha1         = "ef77948085fbe66ce29c0f2f1f58e65a3cf3a41c" -> (known after apply)
+      [33m~[0m[0m content_sha256       = "65e135aab85600d09a664eb073673f20440ae9ba29bba566ba6b202610fa3f57" -> (known after apply)
+      [33m~[0m[0m content_sha512       = "0605d09ad62ca45d91e230f2cfcb36bd55aea0238356027fe7d99568ba629b5e70d7a518c860c701824bfb33dbb5459d34c92042c470146018237d4c5873bcbb" -> (known after apply)
+      [33m~[0m[0m id                   = "ef77948085fbe66ce29c0f2f1f58e65a3cf3a41c" -> (known after apply)
+        [90m# (3 unchanged attributes hidden)[0m[0m
+    }
+
+[1mPlan:[0m [0m1 to add, 0 to change, 2 to destroy.
+
+Changes to Outputs:
+  [33m~[0m[0m instance_ids   = {
+      [31m-[0m[0m node1 = "i-08596f7e7a53b72bc"
+    }
+  [33m~[0m[0m instance_names = [
+      [31m-[0m[0m "node1",
+    ]
+  [33m~[0m[0m private_ips    = {
+      [31m-[0m[0m node1 = "172.31.34.187"
+    }
+  [33m~[0m[0m public_ips     = {
+      [31m-[0m[0m node1 = "18.209.171.24"
+    }
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destroying... [id=ef77948085fbe66ce29c0f2f1f58e65a3cf3a41c][0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destruction complete after 0s[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Destroying... [id=i-08596f7e7a53b72bc][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still destroying... [id=i-08596f7e7a53b72bc, 00m10s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still destroying... [id=i-08596f7e7a53b72bc, 00m20s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still destroying... [id=i-08596f7e7a53b72bc, 00m30s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Destruction complete after 30s[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creating...[0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creation complete after 0s [id=356e3b6eff05f351a7f2729e2f5dcafc5e219135][0m
+[0m[1m[32m
+Apply complete! Resources: 1 added, 0 changed, 2 destroyed.[0m
+[0m[1m[32m
+Outputs:
+
+[0minstance_ids = {}
+instance_names = tolist([])
+private_ips = {}
+public_ips = {}
+==> Reloading HAProxy backend list
+==> Discovering Traefik nodes and regenerating haproxy.cfg
+Wrote /home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb/haproxy.cfg
+    server worker1 172.31.20.93:30080 check
+    server worker1 172.31.20.93:30443 check
+==> Checking HAProxy container
+==> Checking mounted config path
+==> Copying new config into container
+Error response from daemon: unlinkat /usr/local/etc/haproxy/haproxy.cfg: device or resource busy
+
+127.0.0.1 - "POST /scale-ec2 HTTP/1.1" 202 -
+Starting EC2 scale-up command
+EC2 scale-up command failed: ==> Adding one EC2 node with Terraform
+[0m[1mInitializing modules...[0m
+[0m[1mInitializing provider plugins found in the configuration...[0m
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/local v2.8.0
+- Using previously-installed hashicorp/aws v5.100.0
+
+[0m[1mInitializing the backend...[0m
+
+[0m[1mInitializing provider plugins found in the state...[0m
+- Reusing previous version of hashicorp/aws
+- Reusing previous version of hashicorp/local
+- Using previously-installed hashicorp/aws v5.100.0
+- Using previously-installed hashicorp/local v2.8.0
+
+
+[0m[1m[32mTerraform has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[0m[1mmodule.ec2_workers.data.aws_security_group.selected: Reading...[0m[0m
+[0m[1mmodule.ec2_workers.aws_iam_policy.ecr_pull: Refreshing state... [id=arn:aws:iam::606030503959:policy/hospital-ecr-pull-policy][0m
+[0m[1mmodule.ec2_workers.aws_iam_role.worker_role: Refreshing state... [id=hospital-worker-role][0m
+[0m[1mmodule.ec2_workers.aws_iam_role_policy_attachment.ecr_pull_attach: Refreshing state... [id=hospital-worker-role-20260507190746941600000001][0m
+[0m[1mmodule.ec2_workers.aws_iam_instance_profile.worker_profile: Refreshing state... [id=hospital-worker-profile][0m
+[0m[1mmodule.ec2_workers.data.aws_security_group.selected: Read complete after 0s [id=sg-0c85417b372570c73][0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Refreshing state... [id=356e3b6eff05f351a7f2729e2f5dcafc5e219135][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+[31m-[0m/[32m+[0m destroy and then create replacement[0m
+
+Terraform will perform the following actions:
+
+[1m  # module.ec2_workers.aws_instance.node["node1"][0m will be created
+[0m  [32m+[0m[0m resource "aws_instance" "node" {
+      [32m+[0m[0m ami                                  = "ami-091138d0f0d41ff90"
+      [32m+[0m[0m arn                                  = (known after apply)
+      [32m+[0m[0m associate_public_ip_address          = (known after apply)
+      [32m+[0m[0m availability_zone                    = (known after apply)
+      [32m+[0m[0m cpu_core_count                       = (known after apply)
+      [32m+[0m[0m cpu_threads_per_core                 = (known after apply)
+      [32m+[0m[0m disable_api_stop                     = (known after apply)
+      [32m+[0m[0m disable_api_termination              = (known after apply)
+      [32m+[0m[0m ebs_optimized                        = (known after apply)
+      [32m+[0m[0m enable_primary_ipv6                  = (known after apply)
+      [32m+[0m[0m get_password_data                    = false
+      [32m+[0m[0m host_id                              = (known after apply)
+      [32m+[0m[0m host_resource_group_arn              = (known after apply)
+      [32m+[0m[0m iam_instance_profile                 = "hospital-worker-profile"
+      [32m+[0m[0m id                                   = (known after apply)
+      [32m+[0m[0m instance_initiated_shutdown_behavior = (known after apply)
+      [32m+[0m[0m instance_lifecycle                   = (known after apply)
+      [32m+[0m[0m instance_state                       = (known after apply)
+      [32m+[0m[0m instance_type                        = "t3.small"
+      [32m+[0m[0m ipv6_address_count                   = (known after apply)
+      [32m+[0m[0m ipv6_addresses                       = (known after apply)
+      [32m+[0m[0m key_name                             = "kien"
+      [32m+[0m[0m monitoring                           = (known after apply)
+      [32m+[0m[0m outpost_arn                          = (known after apply)
+      [32m+[0m[0m password_data                        = (known after apply)
+      [32m+[0m[0m placement_group                      = (known after apply)
+      [32m+[0m[0m placement_partition_number           = (known after apply)
+      [32m+[0m[0m primary_network_interface_id         = (known after apply)
+      [32m+[0m[0m private_dns                          = (known after apply)
+      [32m+[0m[0m private_ip                           = (known after apply)
+      [32m+[0m[0m public_dns                           = (known after apply)
+      [32m+[0m[0m public_ip                            = (known after apply)
+      [32m+[0m[0m secondary_private_ips                = (known after apply)
+      [32m+[0m[0m security_groups                      = (known after apply)
+      [32m+[0m[0m source_dest_check                    = true
+      [32m+[0m[0m spot_instance_request_id             = (known after apply)
+      [32m+[0m[0m subnet_id                            = (known after apply)
+      [32m+[0m[0m tags                                 = {
+          [32m+[0m[0m "ManagedBy"  = "terraform"
+          [32m+[0m[0m "Monitoring" = "enabled"
+          [32m+[0m[0m "Name"       = "node1"
+          [32m+[0m[0m "Project"    = "hospital"
+        }
+      [32m+[0m[0m tags_all                             = {
+          [32m+[0m[0m "ManagedBy"  = "terraform"
+          [32m+[0m[0m "Monitoring" = "enabled"
+          [32m+[0m[0m "Name"       = "node1"
+          [32m+[0m[0m "Project"    = "hospital"
+        }
+      [32m+[0m[0m tenancy                              = (known after apply)
+      [32m+[0m[0m user_data                            = (known after apply)
+      [32m+[0m[0m user_data_base64                     = (known after apply)
+      [32m+[0m[0m user_data_replace_on_change          = false
+      [32m+[0m[0m vpc_security_group_ids               = [
+          [32m+[0m[0m "sg-0c85417b372570c73",
+        ]
+
+      [32m+[0m[0m capacity_reservation_specification (known after apply)
+
+      [32m+[0m[0m cpu_options (known after apply)
+
+      [32m+[0m[0m ebs_block_device (known after apply)
+
+      [32m+[0m[0m enclave_options (known after apply)
+
+      [32m+[0m[0m ephemeral_block_device (known after apply)
+
+      [32m+[0m[0m instance_market_options (known after apply)
+
+      [32m+[0m[0m maintenance_options (known after apply)
+
+      [32m+[0m[0m metadata_options (known after apply)
+
+      [32m+[0m[0m network_interface (known after apply)
+
+      [32m+[0m[0m private_dns_name_options (known after apply)
+
+      [32m+[0m[0m root_block_device (known after apply)
+    }
+
+[1m  # module.ec2_workers.local_file.ansible_inventory[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "local_file" "ansible_inventory" {
+      [33m~[0m[0m content              = "[web]" -> (known after apply) [31m# forces replacement[0m[0m
+      [33m~[0m[0m content_base64sha256 = "HoouL2yKh18HVEcQ0cec6WZJGavHrYYL8SMt6WpN8m8=" -> (known after apply)
+      [33m~[0m[0m content_base64sha512 = "CRmxO48/ugyuFr3l6RvG6dxUp+qfCZ1zmab/3tKP9Bud9dmzUDKahON1svccuET8cpwg3FDV31lG56xHu5Ny8A==" -> (known after apply)
+      [33m~[0m[0m content_md5          = "044a7eab4ebe5e69085c0ac8d3adad5e" -> (known after apply)
+      [33m~[0m[0m content_sha1         = "356e3b6eff05f351a7f2729e2f5dcafc5e219135" -> (known after apply)
+      [33m~[0m[0m content_sha256       = "1e8a2e2f6c8a875f07544710d1c79ce9664919abc7ad860bf1232de96a4df26f" -> (known after apply)
+      [33m~[0m[0m content_sha512       = "0919b13b8f3fba0cae16bde5e91bc6e9dc54a7ea9f099d7399a6ffded28ff41b9df5d9b350329a84e375b2f71cb844fc729c20dc50d5df5946e7ac47bb9372f0" -> (known after apply)
+      [33m~[0m[0m id                   = "356e3b6eff05f351a7f2729e2f5dcafc5e219135" -> (known after apply)
+        [90m# (3 unchanged attributes hidden)[0m[0m
+    }
+
+[1mPlan:[0m [0m2 to add, 0 to change, 1 to destroy.
+
+Changes to Outputs:
+  [33m~[0m[0m instance_ids   = {
+      [32m+[0m[0m node1 = (known after apply)
+    }
+  [33m~[0m[0m instance_names = [
+      [32m+[0m[0m "node1",
+    ]
+  [33m~[0m[0m private_ips    = {
+      [32m+[0m[0m node1 = (known after apply)
+    }
+  [33m~[0m[0m public_ips     = {
+      [32m+[0m[0m node1 = (known after apply)
+    }
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destroying... [id=356e3b6eff05f351a7f2729e2f5dcafc5e219135][0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destruction complete after 0s[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Creating...[0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still creating... [00m10s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Creation complete after 12s [id=i-07df7d09dc9f19141][0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creating...[0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creation complete after 1s [id=54ac7d9c24113cb682855dbb6156da7ae2e43018][0m
+[0m[1m[32m
+Apply complete! Resources: 2 added, 0 changed, 1 destroyed.[0m
+[0m[1m[32m
+Outputs:
+
+[0minstance_ids = {
+  "node1" = "i-07df7d09dc9f19141"
+}
+instance_names = tolist([
+  "node1",
+])
+private_ips = {
+  "node1" = "172.31.38.139"
+}
+public_ips = {
+  "node1" = "54.224.3.21"
+}
+==> Terraform outputs
+instance_ids = {
+  "node1" = "i-07df7d09dc9f19141"
+}
+instance_names = tolist([
+  "node1",
+])
+private_ips = {
+  "node1" = "172.31.38.139"
+}
+public_ips = {
+  "node1" = "54.224.3.21"
+}
+==> Running Ansible
+
+PLAY [Prepare Kubernetes worker and join cluster] ******************************
+
+TASK [Wait for SSH to become available] ****************************************
+ok: [node1]
+
+TASK [Gather facts] ************************************************************
+ok: [node1]
+
+TASK [Load kubeadm join command from env file] *********************************
+ok: [node1]
+
+TASK [Validate kubeadm join command] *******************************************
+ok: [node1] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Check whether node already joined the cluster] ***************************
+ok: [node1]
+
+TASK [Copy Kubernetes common setup script] *************************************
+changed: [node1]
+
+TASK [Normalize common setup script line endings] ******************************
+ok: [node1]
+
+TASK [Run Kubernetes common setup script with bash] ****************************
+changed: [node1]
+
+TASK [Join Kubernetes cluster] *************************************************
+changed: [node1]
+
+PLAY RECAP *********************************************************************
+node1                      : ok=9    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+==> Current Kubernetes nodes
+NAME               STATUS     ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION   CONTAINER-RUNTIME
+ip-172-31-20-93    Ready      <none>          2d23h   v1.30.0   172.31.20.93    <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-29-135   Ready      control-plane   2d23h   v1.30.0   172.31.29.135   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-38-139   NotReady   <none>          2s      v1.30.0   172.31.38.139   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+==> Detecting newest Terraform worker private IP
+==> New node private IP: 172.31.38.139
+==> Waiting for Kubernetes node with IP 172.31.38.139 to appear
+==> New Kubernetes node: ip-172-31-38-139
+==> Waiting for ip-172-31-38-139 to become Ready
+node/ip-172-31-38-139 condition met
+==> Waiting for Traefik pod on ip-172-31-38-139
+Waiting for Traefik pod on ip-172-31-38-139...
+Waiting for Traefik pod on ip-172-31-38-139...
+Waiting for Traefik pod on ip-172-31-38-139...
+Waiting for Traefik pod on ip-172-31-38-139...
+Waiting for Traefik pod on ip-172-31-38-139...
+Waiting for Traefik pod on ip-172-31-38-139...
+==> Traefik pod ready on new node: traefik-nrkqj
+==> New node and Traefik are ready
+NAME               STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION   CONTAINER-RUNTIME
+ip-172-31-20-93    Ready    <none>          2d23h   v1.30.0   172.31.20.93    <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-29-135   Ready    control-plane   2d23h   v1.30.0   172.31.29.135   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-38-139   Ready    <none>          41s     v1.30.0   172.31.38.139   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+NAME            READY   STATUS    RESTARTS   AGE    IP                NODE               NOMINATED NODE   READINESS GATES
+traefik-52bqp   1/1     Running   0          3h9m   192.168.183.118   ip-172-31-20-93    <none>           <none>
+traefik-nrkqj   1/1     Running   0          31s    192.168.111.65    ip-172-31-38-139   <none>           <none>
+==> Waiting for Traefik DaemonSet to roll out
+daemon set "traefik" successfully rolled out
+==> Traefik pods
+NAME            READY   STATUS    RESTARTS   AGE    IP                NODE               NOMINATED NODE   READINESS GATES
+traefik-52bqp   1/1     Running   0          3h9m   192.168.183.118   ip-172-31-20-93    <none>           <none>
+traefik-nrkqj   1/1     Running   0          31s    192.168.111.65    ip-172-31-38-139   <none>           <none>
+==> Reloading HAProxy backend list
+==> Discovering Traefik nodes and regenerating haproxy.cfg
+Wrote /home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb/haproxy.cfg
+    server worker1 172.31.20.93:30080 check
+    server worker2 172.31.38.139:30080 check
+    server worker1 172.31.20.93:30443 check
+    server worker2 172.31.38.139:30443 check
+==> Checking HAProxy container
+==> Checking mounted config path
+==> Copying new config into container
+Error response from daemon: unlinkat /usr/local/etc/haproxy/haproxy.cfg: device or resource busy
+
+Starting EC2 scale-down command
+172.17.0.5 - "POST /scale-ec2 HTTP/1.1" 202 -
+EC2 scale-down command completed
+[33m~[0m[0m public_ips     = {
+      [31m-[0m[0m node1 = "54.224.3.21"
+    }
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destroying... [id=54ac7d9c24113cb682855dbb6156da7ae2e43018][0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Destruction complete after 0s[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Destroying... [id=i-07df7d09dc9f19141][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still destroying... [id=i-07df7d09dc9f19141, 00m10s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still destroying... [id=i-07df7d09dc9f19141, 00m20s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Still destroying... [id=i-07df7d09dc9f19141, 00m30s elapsed][0m[0m
+[0m[1mmodule.ec2_workers.aws_instance.node["node1"]: Destruction complete after 30s[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creating...[0m[0m
+[0m[1mmodule.ec2_workers.local_file.ansible_inventory: Creation complete after 0s [id=356e3b6eff05f351a7f2729e2f5dcafc5e219135][0m
+[0m[1m[32m
+Apply complete! Resources: 1 added, 0 changed, 2 destroyed.[0m
+[0m[1m[32m
+Outputs:
+
+[0minstance_ids = {}
+instance_names = tolist([])
+private_ips = {}
+public_ips = {}
+==> Reloading HAProxy backend list
+==> Discovering Traefik nodes and regenerating haproxy.cfg
+Wrote /home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb/haproxy.cfg
+    server worker1 172.31.20.93:30080 check
+    server worker1 172.31.20.93:30443 check
+==> Checking HAProxy container
+==> Checking mounted config path
+==> Using mounted host config: /home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb/haproxy.cfg
+==> Config is updated on host bind mount; no docker cp needed
+==> Validating HAProxy config
+==> Reloading HAProxy gracefully with USR2
+==> Waiting for container config to match host config
+==> Container config matches host config
+==> HAProxy backend servers on host
+    server worker1 172.31.20.93:30080 check
+==> HAProxy backend servers in container
+    server worker1 172.31.20.93:30080 check
+==> HAProxy logs
+[NOTICE]   (1) : New worker (8) forked
+[NOTICE]   (1) : Loading success.
+[WARNING]  (8) : Server traefik_nodes_http/worker2 is DOWN, reason: Layer7 timeout, check duration: 2006ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+[NOTICE]   (1) : Reloading HAProxy
+[WARNING]  (8) : Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+[WARNING]  (8) : Proxy https_front stopped (cumulated conns: FE: 1, BE: 0).
+[WARNING]  (8) : Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 2).
+Server traefik_nodes_http/worker2 is DOWN, reason: Layer7 timeout, check duration: 2006ms. 1 active and 0 backup servers left. 0 sessions active, 0 requeued, 0 remaining in queue.
+113.169.65.100:62203 [08/May/2026:16:46:58.111] https_front~ traefik_nodes_http/worker1 0/0/4/1/5 304 232 - - ---- 1/1/0/0/0 0/0 "GET https://benhvien.teamdevops.shop/ HTTP/2.0"
+113.169.65.100:62203 [08/May/2026:16:47:07.519] https_front~ traefik_nodes_http/worker1 0/0/0/1/1 304 232 - - ---- 1/1/0/0/0 0/0 "GET https://benhvien.teamdevops.shop/ HTTP/2.0"
+Proxy http_front stopped (cumulated conns: FE: 0, BE: 0).
+Proxy https_front stopped (cumulated conns: FE: 1, BE: 0).
+Proxy traefik_nodes_http stopped (cumulated conns: FE: 0, BE: 2).
+[NOTICE]   (1) : New worker (32) forked
+[NOTICE]   (1) : Loading success.
+==> Current Kubernetes nodes
+NAME               STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION   CONTAINER-RUNTIME
+ip-172-31-20-93    Ready    <none>          2d23h   v1.30.0   172.31.20.93    <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+ip-172-31-29-135   Ready    control-plane   2d23h   v1.30.0   172.31.29.135   <none>        Ubuntu 26.04 LTS   7.0.0-1004-aws   cri-o://1.30.10
+==> Current HAProxy backend servers
+    server worker1 172.31.20.93:30080 check
+==> Scale-in done
+

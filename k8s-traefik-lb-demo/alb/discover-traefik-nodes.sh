@@ -77,9 +77,14 @@ export \
   ALB_DOMAIN \
   HAPROXY_HTTP_BACKEND_SERVERS="${http_backend_servers%$'\n'}" \
   HAPROXY_HTTPS_BACKEND_SERVERS="${https_backend_servers%$'\n'}"
+TMP_CONFIG="$(mktemp)"
+
 envsubst '${ALB_DOMAIN} ${HAPROXY_HTTP_BACKEND_SERVERS} ${HAPROXY_HTTPS_BACKEND_SERVERS}' \
   < "${SCRIPT_DIR}/haproxy.cfg.tpl" \
-  > "${SCRIPT_DIR}/${HAPROXY_CONFIG}"
+  > "${TMP_CONFIG}"
+
+cat "${TMP_CONFIG}" > "${SCRIPT_DIR}/${HAPROXY_CONFIG}"
+rm -f "${TMP_CONFIG}"
 
 echo "Wrote ${SCRIPT_DIR}/${HAPROXY_CONFIG}"
 printf '%s\n' "${http_backend_servers%$'\n'}"
