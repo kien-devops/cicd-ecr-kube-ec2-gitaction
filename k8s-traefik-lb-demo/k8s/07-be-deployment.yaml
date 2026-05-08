@@ -56,7 +56,7 @@ spec:
               drop:
                 - ALL
 
-          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:8231e5f49353370a808075da595d40f8086aef4a
+          image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:86374c37ff9ce9fe52869f952559314eeebf2298
           imagePullPolicy: Always
 
           env:
