@@ -5,6 +5,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTAINER_NAME="${HAPROXY_CONTAINER_NAME:-haproxy-alb}"
 CONTAINER_CONFIG="/usr/local/etc/haproxy/haproxy.cfg"
 
+# Ensure kubectl can find the kubeconfig when called via sudo or automation.
+# If KUBECONFIG is not set, try common locations.
+if [[ -z "${KUBECONFIG:-}" ]]; then
+  if [[ -f "${HOME}/.kube/config" ]]; then
+    export KUBECONFIG="${HOME}/.kube/config"
+  elif [[ -n "${SUDO_USER:-}" ]] && [[ -f "/home/${SUDO_USER}/.kube/config" ]]; then
+    export KUBECONFIG="/home/${SUDO_USER}/.kube/config"
+  fi
+fi
+
 bash "${SCRIPT_DIR}/discover-traefik-nodes.sh"
 
 if sudo docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then

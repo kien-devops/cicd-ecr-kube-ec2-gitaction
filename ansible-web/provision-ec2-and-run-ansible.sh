@@ -53,6 +53,11 @@ fi
 
 load_alb_env
 
+# Ensure KUBECONFIG is exported if defined in .env
+if [[ -n "${KUBECONFIG:-}" ]]; then
+  export KUBECONFIG
+fi
+
 ALB_RELOAD_TARGET="${ALB_RELOAD_TARGET:-}"
 ALB_RELOAD_SSH_KEY="${ALB_RELOAD_SSH_KEY:-${KEY_FILE}}"
 ALB_RELOAD_SSH_PORT="${ALB_RELOAD_SSH_PORT:-22}"

@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 // API URL
-// export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5247/api';
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://benhvien.teamdevops.shop/api';
 
 // Media URL: remove trailing /api when API_BASE_URL includes it.
 export const MEDIA_BASE_URL = API_BASE_URL.endsWith('/api')
