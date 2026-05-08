@@ -23,6 +23,7 @@ Route 53
 | `docker-compose.yml` | Runs HAProxy container. |
 | `discover-traefik-nodes.sh` | Discovers worker nodes with Traefik pods and renders `haproxy.cfg`. |
 | `reload-haproxy.sh` | Regenerates config and gracefully reloads HAProxy. |
+| `auto-reload-haproxy.sh` | Watches Traefik node changes and reloads HAProxy only when config changes. |
 | `haproxy.cfg.tpl` | HAProxy template. |
 | `.env.example` | Example runtime config. |
 | `certs/` | Local certificate PEM files. Do not commit real private keys. |
@@ -50,7 +51,7 @@ Stop HAProxy before using Certbot standalone:
 
 ```bash
 cd ~/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb
-sudo docker-compose stop haproxy
+sudo docker compose stop haproxy
 ```
 
 Install and run Certbot:
@@ -93,7 +94,7 @@ Generate config and start:
 
 ```bash
 bash discover-traefik-nodes.sh
-sudo docker-compose up -d --force-recreate
+sudo docker compose up -d --force-recreate
 ```
 
 Reload after worker nodes change:
@@ -102,13 +103,49 @@ Reload after worker nodes change:
 bash reload-haproxy.sh
 ```
 
+## Automatic Reload
+
+Run the watcher in a long-running shell:
+
+```bash
+bash auto-reload-haproxy.sh
+```
+
+The watcher discovers Traefik nodes every `ALB_AUTO_RELOAD_INTERVAL_SECONDS` seconds, compares the generated `haproxy.cfg`, validates the config inside the container, then gracefully reloads HAProxy with `USR2` only when the backend list changes.
+
+To run it automatically with systemd:
+
+```bash
+sudo tee /etc/systemd/system/haproxy-alb-auto-reload.service >/dev/null <<'EOF'
+[Unit]
+Description=Auto reload HAProxy ALB when Traefik nodes change
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb
+ExecStart=/usr/bin/bash /home/ubuntu/cicd-ecr-kube-ec2-gitaction/k8s-traefik-lb-demo/alb/auto-reload-haproxy.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now haproxy-alb-auto-reload.service
+```
+
+Adjust `/home/ubuntu/...` if the repo lives under a different user, for example `/home/ec2-user/...`.
+
 ## Verify
 
 ```bash
 curl -I http://benhvien.teamdevops.shop
 curl -IL --max-redirs 5 https://benhvien.teamdevops.shop
 curl -i https://benhvien.teamdevops.shop/api/User/test
-sudo docker-compose logs -f haproxy
+sudo docker compose logs -f haproxy
 ```
 
 Only HAProxy should redirect HTTP to HTTPS. Traefik should stay HTTP-only behind HAProxy.

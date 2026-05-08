@@ -2,9 +2,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/.env"
+
+if [ -f "${ENV_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "${ENV_FILE}"
+  set +a
+fi
+
 CONTAINER_NAME="${HAPROXY_CONTAINER_NAME:-haproxy-alb}"
 CONTAINER_CONFIG="/usr/local/etc/haproxy/haproxy.cfg"
-HOST_CONFIG="${SCRIPT_DIR}/haproxy.cfg"
+HOST_CONFIG="${SCRIPT_DIR}/${HAPROXY_CONFIG:-haproxy.cfg}"
 
 if [[ -z "${KUBECONFIG:-}" ]]; then
   if [[ -f "${HOME}/.kube/config" ]]; then
@@ -16,8 +25,12 @@ fi
 
 cd "${SCRIPT_DIR}"
 
-echo "==> Discovering Traefik nodes and regenerating haproxy.cfg"
-bash "${SCRIPT_DIR}/discover-traefik-nodes.sh"
+if [[ "${RELOAD_SKIP_DISCOVER:-false}" = "true" ]]; then
+  echo "==> Using existing haproxy.cfg"
+else
+  echo "==> Discovering Traefik nodes and regenerating haproxy.cfg"
+  bash "${SCRIPT_DIR}/discover-traefik-nodes.sh"
+fi
 
 echo "==> Checking HAProxy container"
 if ! sudo docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
@@ -34,6 +47,15 @@ MOUNT_SOURCE="$(
 if [[ -n "${MOUNT_SOURCE}" ]]; then
   echo "==> Using mounted host config: ${MOUNT_SOURCE}"
   HOST_CONFIG="${MOUNT_SOURCE}"
+else
+  MOUNT_SOURCE="$(
+    sudo docker inspect "${CONTAINER_NAME}" \
+      --format '{{range .Mounts}}{{if eq .Destination "/usr/local/etc/haproxy"}}{{.Source}}{{end}}{{end}}'
+  )"
+  if [[ -n "${MOUNT_SOURCE}" ]]; then
+    echo "==> Using mounted host config directory: ${MOUNT_SOURCE}"
+    HOST_CONFIG="${MOUNT_SOURCE}/haproxy.cfg"
+  fi
 fi
 
 echo "==> Config is updated on host bind mount; no docker cp needed"
