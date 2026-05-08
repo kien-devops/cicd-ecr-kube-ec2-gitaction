@@ -294,6 +294,3 @@ reload_haproxy_backend
 echo "==> Done"
 echo "Check node status with: kubectl get nodes -o wide"
 echo "Check HAProxy backend with: sudo docker exec ${HAPROXY_CONTAINER_NAME} grep 'server worker' ${HAPROXY_CONTAINER_CONFIG}"
-EOF
-
-chmod +x provision-ec2-and-run-ansible.sh
