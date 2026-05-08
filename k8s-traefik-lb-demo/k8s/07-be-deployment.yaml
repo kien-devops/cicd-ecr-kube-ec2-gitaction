@@ -59,6 +59,13 @@ spec:
           image: 606030503959.dkr.ecr.us-east-1.amazonaws.com/ecr-be:e5a73fe67bb4456e556840e8077d9d9ac1ad1b95
           imagePullPolicy: Always
 
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: be-db-secret
+                  key: default-connection
+
           ports:
             - containerPort: 8080
 
