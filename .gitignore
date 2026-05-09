@@ -4,6 +4,7 @@ Thumbs.db
 .history/
 .vs/
 .vscode/
+skills/
 *.swp
 *.swo
 *~
@@ -75,3 +76,4 @@ id_rsa.pub
 # .NET publish output with secrets
 hospital_BE/Hospital_API/publish/appsettings.json
 k8s-traefik-lb-demo\alb\haproxy.cfg
+
