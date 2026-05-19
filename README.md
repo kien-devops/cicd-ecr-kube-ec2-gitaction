@@ -22,6 +22,8 @@ The project is designed as a practical DevOps reference architecture: applicatio
 
 ## System Architecture
 
+![Hospital Platform Architecture](image.png)
+
 ```mermaid
 flowchart TB
     user[Internet users] --> dns[DNS: benhvien.teamdevops.shop]
