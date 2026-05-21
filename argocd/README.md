@@ -27,6 +27,7 @@ flowchart LR
 | File | Purpose |
 |---|---|
 | `hospital-traefik-app.yaml` | Argo CD Application for the Hospital Kubernetes stack. |
+| `external-secrets-app.yaml` | Argo CD Application for the External Secrets Operator stack. |
 | `SETUP.md` | Step-by-step Argo CD installation notes. |
 | `images/` | Documentation images. |
 
@@ -111,7 +112,7 @@ argocd app sync hospital-traefik-app
 | Topic | Guidance |
 |---|---|
 | Manual edits | Avoid `kubectl edit` for managed resources. Commit the change to Git instead. |
-| Runtime secrets | Keep secrets such as `be-db-secret` created separately in the cluster. |
+| Runtime secrets | Managed dynamically by External Secrets Operator (ESO) from AWS Secrets Manager. |
 | Image deployment | GitHub Actions updates image tags in Git, then Argo CD syncs. |
 | Drift | Self-heal will bring live resources back to Git state. |
 | Prune | Deleted manifests can delete live resources during sync. Review changes carefully. |

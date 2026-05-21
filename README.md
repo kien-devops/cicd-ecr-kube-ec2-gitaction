@@ -185,21 +185,22 @@ kubeadm token create --print-join-command
 
 Put the generated `kubeadm join ...` command into `ansible-web/.env` as `KUBEADM_JOIN_COMMAND`.
 
-4. Create Kubernetes runtime secrets:
+4. Set up AWS Secrets Manager and External Secrets Operator (ESO):
 
-```bash
-aws ecr get-login-password --region us-east-1 \
-  | kubectl create secret docker-registry ecr-registry-secret \
-    -n hospital \
-    --docker-server=606030503959.dkr.ecr.us-east-1.amazonaws.com \
-    --docker-username=AWS \
-    --docker-password-stdin \
-    --dry-run=client -o yaml | kubectl apply -f -
+Instead of creating secrets manually (which requires manual rotation of the ECR token every 12 hours), the system now uses **External Secrets Operator (ESO)** to automatically fetch the database connection string from AWS Secrets Manager and auto-rotate the ECR login token every hour.
 
-kubectl -n hospital create secret generic be-db-secret \
-  --from-literal=default-connection='Server=<DB_HOST>,1433;Database=hospital;User Id=sa;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True' \
-  --dry-run=client -o yaml | kubectl apply -f -
+a. Create a secret named `hospital-db-connection` in AWS Secrets Manager (`us-east-1`) with a key named `default-connection` containing your database connection string:
+```text
+Key: default-connection
+Value: Server=<DB_HOST>,1433;Database=hospital;User Id=sa;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True
 ```
+
+b. Apply the Argo CD application for External Secrets Operator:
+```bash
+kubectl apply -f argocd/external-secrets-app.yaml
+```
+
+Once the operator is running, it will automatically populate `ecr-registry-secret` and `be-db-secret` in the `hospital` namespace.
 
 5. Apply the Kubernetes stack manually or let Argo CD manage it:
 

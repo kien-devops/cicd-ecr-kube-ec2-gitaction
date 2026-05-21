@@ -33,6 +33,7 @@ flowchart TB
 | `01-traefik-rbac.yaml` | Creates Traefik ServiceAccount, ClusterRole, and binding. |
 | `02-traefik-gatewayclass.yaml` | Defines GatewayClass `traefik`. |
 | `03-traefik-deployment.yaml` | Runs Traefik as a DaemonSet. |
+| `04-external-secrets.yaml` | Defines ClusterSecretStore, ECR token generator, and ExternalSecrets for DB & ECR. |
 | `04-traefik-service.yaml` | Exposes Traefik on NodePort `30080`. |
 | `05-fe-deployment.yaml` | Runs frontend pods from ECR image `ecr-fe:<sha>`. |
 | `06-fe-service.yaml` | ClusterIP service for frontend pods. |
@@ -42,45 +43,42 @@ flowchart TB
 | `10-network-policy.yaml` | Default-deny ingress plus allow rules from Traefik to application pods. |
 | `apply.sh` | Installs required CRDs if missing and applies all manifests. |
 
-## Required Secrets
+## Required Secrets (Automated via External Secrets Operator)
 
-### ECR Pull Secret
+The application workload secrets are now managed automatically by the **External Secrets Operator (ESO)** using AWS integration. They do not require manual creation or 12-hour CLI updates.
 
-The frontend and backend deployments reference:
+### 1. ECR Pull Secret (`ecr-registry-secret`)
+
+The frontend and backend deployments reference this secret to pull their respective Docker images from AWS ECR:
 
 ```yaml
 imagePullSecrets:
   - name: ecr-registry-secret
 ```
 
-Create or refresh it:
+This secret is generated dynamically by the `ECRAuthorizationToken` generator defined in `04-external-secrets.yaml` and is automatically rotated every hour.
 
-```bash
-aws ecr get-login-password --region us-east-1 \
-  | kubectl create secret docker-registry ecr-registry-secret \
-    -n hospital \
-    --docker-server=606030503959.dkr.ecr.us-east-1.amazonaws.com \
-    --docker-username=AWS \
-    --docker-password-stdin \
-    --dry-run=client -o yaml | kubectl apply -f -
+### 2. Backend Database Secret (`be-db-secret`)
+
+The backend API pod reads the connection string key `default-connection` from this secret:
+
+```yaml
+env:
+  - name: ConnectionStrings__DefaultConnection
+    valueFrom:
+      secretKeyRef:
+        name: be-db-secret
+        key: default-connection
 ```
 
-### Backend Database Secret
+This secret is dynamically populated from AWS Secrets Manager using the `be-db-secret` ExternalSecret.
 
-The backend reads `ConnectionStrings__DefaultConnection` from `be-db-secret`:
-
-```bash
-kubectl -n hospital create secret generic be-db-secret \
-  --from-literal=default-connection='Server=<DB_HOST>,1433;Database=hospital;User Id=sa;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True' \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-Restart backend pods after changing it:
-
-```bash
-kubectl -n hospital rollout restart deployment/be-deployment-v1
-kubectl -n hospital rollout status deployment/be-deployment-v1
-```
+To update the connection string:
+1. Modify the secret named `hospital-db-connection` in AWS Secrets Manager (`us-east-1`).
+2. The controller will automatically sync the changes into the K8s cluster within 1 hour. To force an immediate update:
+   ```bash
+   kubectl -n hospital rollout restart deployment/be-deployment-v1
+   ```
 
 ## Manual Apply
 
