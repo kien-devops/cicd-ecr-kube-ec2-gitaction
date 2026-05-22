@@ -77,3 +77,6 @@ id_rsa.pub
 hospital_BE/Hospital_API/publish/appsettings.json
 k8s-traefik-lb-demo\alb\haproxy.cfg
 
+# MCP and code-review-graph
+.code-review-graph/
+.mcp.json
